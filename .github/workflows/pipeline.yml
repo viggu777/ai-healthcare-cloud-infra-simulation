@@ -98,11 +98,18 @@ jobs:
       - name: health gate dev + smoke + workload
         run: |
           for i in $(seq 1 36); do
-            if curl -fsS -m 5 http://localhost:8080/ready 2>/dev/null | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)" 2>/dev/null; then
+            BODY="$(curl -fsS -m 5 http://localhost:8080/ready 2>/dev/null || true)"
+            if printf '%s' "$BODY" | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)" 2>/dev/null; then
               echo "dev READY"; break
             fi
-            echo "waiting for dev /ready ($i/36)…"; sleep 5
-            if [ "$i" = 36 ]; then echo "dev health gate TIMEOUT"; exit 1; fi
+            echo "waiting for dev /ready ($i/36)… body=${BODY:0:160}"
+            if [ "$i" = 36 ]; then
+              echo "dev health gate TIMEOUT — diagnostics:"
+              docker compose --env-file environments/dev.env ps
+              docker compose --env-file environments/dev.env logs --tail=25 gateway api db queue 2>&1 | tail -60
+              echo "dev health gate TIMEOUT"; exit 1
+            fi
+            sleep 5
           done
           GATEWAY_URL=http://localhost:8080 bash scripts/smoke.sh
           python3 scripts/workload.py http://localhost:8080 10
