@@ -88,6 +88,13 @@ jobs:
         run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env up -d
       - name: health gate dev + smoke + workload
         run: |
+          for i in $(seq 1 36); do
+            if curl -fsS -m 5 http://localhost:8080/ready | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)"; then
+              echo "dev READY"; break
+            fi
+            echo "waiting for dev /ready ($i/36)…"; sleep 5
+            if [ "$i" = 36 ]; then echo "dev health gate TIMEOUT"; exit 1; fi
+          done
           GATEWAY_URL=http://localhost:8080 bash scripts/smoke.sh
           python3 scripts/workload.py http://localhost:8080 10
       - name: rollback dev on failure
@@ -105,7 +112,15 @@ jobs:
         run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d
       - name: post-promote health check
         if: success()
-        run: GATEWAY_URL=http://localhost:8081 bash scripts/smoke.sh
+        run: |
+          for i in $(seq 1 36); do
+            if curl -fsS -m 5 http://localhost:8081/ready | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)"; then
+              echo "prod-like READY"; break
+            fi
+            echo "waiting for prod-like /ready ($i/36)…"; sleep 5
+            if [ "$i" = 36 ]; then echo "prod-like health gate TIMEOUT"; exit 1; fi
+          done
+          GATEWAY_URL=http://localhost:8081 bash scripts/smoke.sh
       - name: rollback prod-like on failure
         if: failure()
         run: |
