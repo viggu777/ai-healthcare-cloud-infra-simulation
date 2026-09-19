@@ -4,8 +4,15 @@
 # Compose private network (same digest-pinned image as `db`, no new tooling).
 # No host Mongo install needed; FOSS only.
 #
+# RETENTION POLICY (P0.3): after every successful backup, only the newest
+# $KEEP backups matching `backups/backup-*` are kept; older ones are deleted.
+# Default KEEP=5 (override: `--keep N` or `KEEP_BACKUPS=N`). Directories NOT
+# matching `backup-*` (e.g. `drill-p4` evidence, `.gitkeep`) are never pruned.
+# Deletion runs through a uid-0 ephemeral container because dump files belong
+# to the image uid (999) and are host-undeletable otherwise (P0.3 residue fix).
+#
 # Usage:
-#   bash scripts/backup-mongo.sh [--env-file environments/dev.env] [--out backups/<name>]
+#   bash scripts/backup-mongo.sh [--env-file environments/dev.env] [--out backups/<name>] [--keep N]
 # Output: <out>/healthcare/{appointments,jobs}.bson (+ metadata). Prints document counts.
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -13,12 +20,15 @@ cd "$(dirname "$0")/.."
 export DOCKER_CONFIG="${DOCKER_CONFIG:-/tmp/docker-nocreds}"
 ENV_FILE="environments/dev.env"
 OUT=""
+KEEP="${KEEP_BACKUPS:-5}"
 while [ $# -gt 0 ]; do
   case "$1" in
     --env-file=*) ENV_FILE="${1#*=}"; shift ;;
     --env-file) ENV_FILE="$2"; shift 2 ;;
     --out=*) OUT="${1#*=}"; shift ;;
     --out) OUT="${2:?--out needs a value}"; shift 2 ;;
+    --keep=*) KEEP="${1#*=}"; shift ;;
+    --keep) KEEP="${2:?--keep needs a value}"; shift 2 ;;
     environments/*) ENV_FILE="$1"; shift ;;
     *) echo "unknown arg: $1"; exit 2 ;;
   esac
@@ -51,3 +61,22 @@ docker compose --env-file "$ENV_FILE" exec db mongosh --quiet \
   -u "${MONGO_USER:-app}" -p "${MONGO_PASSWORD:-app_secret_change_me}" \
   --eval "db.getSiblingDB('healthcare').appointments.countDocuments({})" 2>/dev/null
 echo "BACKUP OK: $OUT"
+# ---- retention: keep newest $KEEP backups/backup-*/ dirs, prune the rest ----
+echo "--- retention (keep newest $KEEP in backups/backup-*) ---"
+mapfile -t ALL_BK < <(ls -dt backups/backup-*/ 2>/dev/null || true)
+echo "  found ${#ALL_BK[@]} backup(s)"
+if [ "${#ALL_BK[@]}" -gt "$KEEP" ]; then
+  for old in "${ALL_BK[@]:$KEEP}"; do
+    echo "  pruning $old"
+    if rm -rf "$old" 2>/dev/null; then
+      echo "  pruned via host rm: $old"
+    else
+      # uid-999-owned residue: delete through a uid-0 ephemeral container.
+      docker run --rm --user root -v "$(pwd)/backups:/b" --entrypoint sh \
+        mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0 \
+        -c "rm -rf '/b/$(basename "$old")' && echo '  pruned via uid-0 container: $old'"
+    fi
+  done
+else
+  echo "  within retention (nothing to prune)"
+fi
