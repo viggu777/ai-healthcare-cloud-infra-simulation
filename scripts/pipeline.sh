@@ -170,6 +170,13 @@ echo "log: $LOG"
 
 # ---- lint ----
 set_stage "lint"
+# P1.1: the gateway TLS mount must exist before compose touches it.
+if [ ! -f gateway/tls/gateway.crt ]; then
+  echo "  (gateway TLS cert missing — generating local self-signed cert)"
+  bash scripts/gen-gateway-cert.sh
+else
+  echo "  [lint-ok] gateway TLS cert present"
+fi
 for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
          services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js; do
   node --check "$f" || die "lint failed: $f"

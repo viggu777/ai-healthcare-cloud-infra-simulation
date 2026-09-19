@@ -41,8 +41,14 @@ services:
       - public
     ports:
       - "${GATEWAY_PORT:-8080}:80"
+      # P1.1: HTTPS listener (self-signed local cert). Per-env host port so
+      # dev + prod-like run side by side (8443 / 8444).
+      - "${GATEWAY_TLS_PORT:-8443}:443"
     volumes:
       - ./gateway/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      # P1.1: local-only cert/keypair (git-ignored; create via
+      # scripts/gen-gateway-cert.sh — pipeline.sh ensures it exists).
+      - ./gateway/tls:/etc/nginx/tls:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health || exit 1"]
       interval: 10s

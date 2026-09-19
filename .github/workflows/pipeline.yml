@@ -40,6 +40,7 @@ jobs:
           done
       - name: compose config valid (dev + prod-like)
         run: |
+          bash scripts/gen-gateway-cert.sh
           docker compose --env-file environments/dev.env config -q
           docker compose --env-file environments/prod.env config -q
       - name: unit tests

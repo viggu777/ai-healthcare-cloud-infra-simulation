@@ -117,10 +117,10 @@ flowchart TB
 ### Nginx Gateway
 - **Responsibility:** Sole public ingress; reverse proxy to API; rate limiting; TLS termination point (self-signed/local cert acceptable in simulation); hides internal topology.
 - **Technology:** Nginx (official image), config as code in repo.
-- **Network visibility:** Attached to the `public` network only (public-only is the tighter posture — the gateway reaches the API over the shared `public` bridge, not via the internal network); sole holder of a host-published port (8080 dev / 8081 prod-like).
+- **Network visibility:** Attached to the `public` network only (public-only is the tighter posture — the gateway reaches the API over the shared `public` bridge, not via the internal network); sole holder of host-published ports — `:80` as 8080/8081 (dev/prod-like) plus `:443` as 8443/8444 (self-signed, P1.1).
 - **Inputs/outputs:** In: client HTTP(S). Out: proxied requests to `api:8000` over the `public` bridge.
 - **Dependencies:** API service healthy (upstream).
-- **Health checks:** No `/nginx-health` endpoint exists — liveness is the `/health` proxy to the API plus `GET /nginx_status` (`stub_status`, allow-listed to loopback/RFC1918 for the exporter); upstream failure surfaces via `proxy` 502/503 handling.
+- **Health checks:** `GET /nginx-health` (static `{"status":"ok","service":"gateway"}`, P1.1 — gateway liveness without touching any upstream) plus the `/health` proxy to the API and `GET /nginx_status` (`stub_status`, allow-listed to loopback/RFC1918 for the exporter); upstream failure surfaces via `proxy` 502/503 handling.
 - **Failure behavior:** Returns 502/503 if API is unreachable; does not crash the whole stack; `restart: unless-stopped` (P0.2, all services).
 
 ### API Service (Node.js/Express)
@@ -216,7 +216,7 @@ flowchart TB
 
 **Never publicly exposed:** MongoDB, Redis, the AI service, the Worker, the Mock EHR, Prometheus, and Grafana (Grafana only via an admin-restricted path, not the client-facing route). This directly satisfies PDF §8 ("only components that genuinely require internet-facing access should be exposed publicly") and §11 ("public exposure of private resources" as a flagged risk).
 
-**Gateway routing (actual `gateway/nginx.conf`):** `GET /health` → proxied to `api:8000/health`; `GET /nginx_status` → Nginx `stub_status`, restricted to loopback/RFC1918 (exporter-only, not a health endpoint); catch-all `/` → proxied to the `api` upstream (so `/ready`, `/metrics`, `/metrics/prom`, `/appointments`, `/ai/query`, `/ehr/*` all resolve through the gateway with no `/api/*` prefix — there is no prefix route and no `/nginx-health` endpoint).
+**Gateway routing (actual `gateway/nginx.conf`):** listeners `:80` + `:443` ssl (self-signed local cert from `scripts/gen-gateway-cert.sh`, P1.1 — same routes on both); `GET /nginx-health` → static gateway liveness; `GET /health` → proxied to `api:8000/health`; `GET /nginx_status` → Nginx `stub_status`, restricted to loopback/RFC1918 (exporter-only); catch-all `/` → proxied to the `api` upstream **with `limit_req` (20 r/s + burst 20, shed as 429)** — so `/ready`, `/metrics`, `/metrics/prom`, `/appointments`, `/ai/query`, `/ehr/*` all resolve through the gateway with no `/api/*` prefix. `/health` and `/nginx-health` are exempt from rate limiting so probes never 429.
 
 **Simulated external EHR boundary:** the Mock EHR container is physically on the internal network (simulation constraint) but is architecturally treated as if it sits across a trust boundary — the worker talks to it the same way it would talk to a real external system (timeouts, retries, circuit-breaking, no shared credentials with internal services), and this deviation is called out explicitly rather than implied.
 
