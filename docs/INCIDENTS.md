@@ -19,8 +19,10 @@ Conventions: `D` = `docker compose --env-file environments/dev.env`,
 ### Failure (17:23:42)
 
 Stopped the single worker while the system was serving, standing in for a
-crash/OOM-kill (Compose `restart: on-failure` would revive a real crash; `stop`
-holds it down so the detection window is observable):
+crash/OOM-kill (Compose `restart: unless-stopped` — P0.2, all 14 services —
+revives a real crash, verified via host-PID `kill -9` with <1 s restart and
+automatic drain; explicit `stop` holds it down so the detection window is
+observable):
 
 ```bash
 D stop worker

@@ -231,7 +231,7 @@ flowchart TB
 4. **Worker processing / AI interaction:** Worker may call the AI service for a simulated decision/enrichment step (e.g., "suggest scheduling slot") → non-fatal on failure, logged and retried a bounded number of times.
 5. **EHR interaction:** Worker calls Mock EHR to simulate sync → on success, marks record `completed`; on slow/timeout, worker respects a request timeout and retries with backoff; on 5xx, retried as transient; on 401, treated as non-retryable (marks `failed_auth`, alertable); on "unavailable," circuit-breaks after N consecutive failures to avoid hammering a down dependency.
 6. **Retry/failure flow:** Failed jobs are retried with exponential backoff up to a max attempt count; after exhausting retries, the job is marked `failed` in Mongo and (conceptually) moved to a dead-letter list in Redis for operator inspection — nothing is silently dropped.
-7. **Worker failure and recovery:** If the worker process is killed/stopped, in-flight and queued jobs simply remain in Redis (not lost, not acknowledged) — this is the exact behavior already validated in Phase 1 (`PHASE1-RESULTS.md`: queue stuck at 10 while stopped, drained to 0 on restart). On worker restart (manual in Compose, `restart: on-failure` policy), consumption resumes automatically.
+7. **Worker failure and recovery:** If the worker process is killed/stopped, in-flight and queued jobs simply remain in Redis (not lost, not acknowledged) — this is the exact behavior already validated in Phase 1 (`PHASE1-RESULTS.md`: queue stuck at 10 while stopped, drained to 0 on restart). An unexpected worker-process death (crash/OOM — verified P0.2 via host-PID `kill -9`: container restarted in <1 s, `RestartCount` 1, backlog drained with no manual step) is revived automatically by the `restart: unless-stopped` policy on every service; an explicit `docker stop/kill` stays stopped by design (it is the management hold-down used to make the INC-01 detection window observable).
 8. **Database persistence:** All appointment/job state changes are persisted to MongoDB immediately on transition (not batched in memory), so a `docker compose down/up` cycle does not lose completed work — already demonstrated in Phase 1 (31 appointments persisted across recreate).
 
 ---
@@ -303,7 +303,7 @@ This satisfies PDF §16 (logging, metrics, health checks, operational dashboard)
 | PDF Scenario | Behavior |
 |---|---|
 | Increased load | Redis buffers the spike between API and worker; API stays responsive by enqueueing rather than processing synchronously; `--scale worker=N` absorbs backlog; k6 used to generate and measure the load (§10). |
-| Worker failure | Jobs remain queued in Redis (not lost); `restart: on-failure` brings the worker back; queue drains on recovery — already validated in Phase 1. |
+| Worker failure | Jobs remain queued in Redis (not lost); `restart: unless-stopped` revives the worker after an unexpected process death (crash/OOM); queue drains on recovery — already validated in Phase 1. |
 | EHR failure | Timeout + retry/backoff in the worker; after N failures, circuit-breaks to avoid hammering; job marked `failed`/`retrying` rather than the worker crashing. |
 | Unhealthy deployment | CI/CD health gate (§7) prevents promotion; previous healthy version keeps serving traffic. |
 | Failed deployment | Same gate — deploy halts before the unhealthy version reaches prod-like; rollback restores the last known-good image tag. |

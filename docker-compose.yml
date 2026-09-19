@@ -1,4 +1,7 @@
 # Phase 1 base + Phase 2 hardening (cap_drop + no-new-privileges on custom services).
+# P0.2: every service carries `restart: unless-stopped` — an unexpected process
+# death (crash/OOM) is revived automatically; an explicit `docker stop/kill`
+# stays stopped by design (management hold-down, used for the INC-01 window).
 # Runtime stack: Node.js 22 + Express (MERN backend; no frontend per spec §26).
 # Usage:
 #   docker compose --env-file environments/dev.env up --build
@@ -33,6 +36,7 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    restart: unless-stopped
     networks:
       - public
     ports:
@@ -58,6 +62,7 @@ services:
         condition: service_healthy
       queue:
         condition: service_healthy
+    restart: unless-stopped
     networks:
       - public
       - private
@@ -85,6 +90,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -109,6 +115,7 @@ services:
         condition: service_healthy
       queue:
         condition: service_healthy
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -134,6 +141,7 @@ services:
     # chown/setuid on /data (verified: fails with "Permission denied" on
     # appendonlydir). Isolated on private internal net instead; revisit with
     # explicit cap_add (CHOWN, SETGID, SETUID) in Phase 3.
+    restart: unless-stopped
     networks:
       - private
     volumes:
@@ -147,6 +155,7 @@ services:
   db:
     # Phase 3: pinned by digest (see gateway note).
     image: mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -170,6 +179,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -194,6 +204,7 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=7d
       - --storage.tsdb.retention.size=1GB
+    restart: unless-stopped
     networks:
       - private
     volumes:
@@ -206,6 +217,7 @@ services:
     image: prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
+    restart: unless-stopped
     networks:
       - private
     volumes:
@@ -218,6 +230,7 @@ services:
     # status pushes (scripts/pipeline.sh pushes via the api container, the only
     # path from the host onto the private net); scraped by Prometheus.
     image: prom/pushgateway:v1.10.0@sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604
+    restart: unless-stopped
     networks:
       - private
 
@@ -229,6 +242,7 @@ services:
     # localhost-bound admin port materialize; the port itself stays
     # 127.0.0.1-bound (host admin only, never LAN/internet, never via gateway).
     image: grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
+    restart: unless-stopped
     networks:
       - public
       - private
@@ -248,6 +262,7 @@ services:
   redis-exporter:
     # Phase 4: pinned by digest (see gateway note).
     image: oliver006/redis_exporter:v1.68.0@sha256:e7e96895407ae28cf28dc97c73c9cd958c5adb4746120e2664569393436c1bd0
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -259,6 +274,7 @@ services:
   mongodb-exporter:
     # Phase 4: pinned by digest (see gateway note).
     image: percona/mongodb_exporter:0.40.0@sha256:d66daa6aff0513860d1577cee3b55ab82fde43394f8319d7b4674411b9153cce
+    restart: unless-stopped
     networks:
       - private
     environment:
@@ -275,6 +291,7 @@ services:
     image: nginx/nginx-prometheus-exporter:1.4.2@sha256:6edfb73afd11f2d83ea4e8007f5068c3ffaa38078a6b0ad1339e5bd2f637aacd
     command:
       - -nginx.scrape-uri=http://gateway:80/nginx_status
+    restart: unless-stopped
     networks:
       - public
       - private
