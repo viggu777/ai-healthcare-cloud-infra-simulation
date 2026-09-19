@@ -19,11 +19,14 @@ cd "$(dirname "$0")/.."
 export DOCKER_CONFIG="${DOCKER_CONFIG:-/tmp/docker-nocreds}"
 ENV_FILE="environments/dev.env"
 TAG_OVERRIDE=""
-for arg in "$@"; do
-  case "$arg" in
-    --env-file=*) ENV_FILE="${arg#*=}" ;;
-    --tag=*) TAG_OVERRIDE="${arg#*=}" ;;
-    environments/*) ENV_FILE="$arg" ;;
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --env-file=*) ENV_FILE="${1#*=}"; shift ;;
+    --env-file) ENV_FILE="$2"; shift 2 ;;
+    --tag=*) TAG_OVERRIDE="${1#*=}"; shift ;;
+    --tag) TAG_OVERRIDE="$2"; shift 2 ;;
+    environments/*) ENV_FILE="$1"; shift ;;
+    *) echo "unknown arg: $1"; exit 2 ;;
   esac
 done
 
@@ -34,14 +37,26 @@ else
 fi
 
 FAIL=0
+EVIDENCE_TMP="$(mktemp -d)"
+trap 'rm -rf "$EVIDENCE_TMP"' EXIT
 echo "=== Trivy app-dependency gate (tag: $APP_VERSION; OS baseline non-blocking per SECURITY.md R1) ==="
 for svc in api ai-service worker ehr-mock alert-logger; do
   img="ai-healthcare/$svc:$APP_VERSION"
   echo "-- $img"
-  result="$(docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+  # P1.7 fix: never swallow a trivy failure into an empty pipe (an empty
+  # document used to die inside json.load with no hint of the real cause,
+  # e.g. a tag that was never built on this runner).
+  scan_json="$(docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
       -v /tmp/opencode/trivycache:/root/.cache/ \
       aquasec/trivy:latest image --format json --severity HIGH,CRITICAL \
-        --scanners vuln --no-progress "$img" 2>/dev/null \
+        --scanners vuln --no-progress "$img" 2>"$EVIDENCE_TMP/trivy-$svc.stderr" || true)"
+  if [ -z "$scan_json" ]; then
+    echo "   [GATE-ERROR] trivy produced no JSON for $img — did this tag get built on this host? (tail of trivy stderr:)"
+    tail -5 "$EVIDENCE_TMP/trivy-$svc.stderr" || true
+    FAIL=1
+    continue
+  fi
+  result="$(printf '%s' "$scan_json" \
     | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
