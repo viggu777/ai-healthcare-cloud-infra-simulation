@@ -1,0 +1,26 @@
+# Local simulation secrets (real values, never commit).
+# NOTE: environments/dev.env + prod.env ARE committed intentionally with
+# placeholder-only values (accepted risk R4, Gitleaks-clean). This rule covers
+# root .env files and any *.local overrides, not those placeholders.
+.env
+*.local
+
+# Node
+node_modules/
+npm-debug.log
+
+# Python helpers
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Runtime artifacts (recreated by scripts, not source)
+backups/backup-*/
+!backups/.gitkeep
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store

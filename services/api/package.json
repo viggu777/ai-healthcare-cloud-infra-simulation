@@ -1,0 +1,15 @@
+{
+  "name": "healthcare-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Patient/API service — public entry behind gateway (Node/Express port of FastAPI app)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "ioredis": "^5.4.1",
+    "mongodb": "^6.12.0"
+  }
+}

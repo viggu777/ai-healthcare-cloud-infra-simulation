@@ -1,0 +1,13 @@
+{
+  "name": "ehr-mock",
+  "version": "0.1.0",
+  "private": true,
+  "description": "External EHR mock with failure modes (Node/Express port)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

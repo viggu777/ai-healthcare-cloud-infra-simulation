@@ -1,0 +1,14 @@
+{
+  "name": "healthcare-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Background worker — Redis queue to MongoDB with EHR calls (Node port)",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "ioredis": "^5.4.1",
+    "mongodb": "^6.12.0"
+  }
+}

@@ -1,0 +1,95 @@
+# Phase 4 — Alert rules (as code). Every rule carries summary/description/runbook
+# annotations: what it means + what the operator should do (see docs/SPOF.md).
+# Severities: critical = wake someone / act now; warning = investigate soon.
+groups:
+  - name: healthcare.rules
+    rules:
+      - alert: APIUnavailable
+        expr: up{job="api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API service is down (no successful scrape for 1m)"
+          description: "Prometheus cannot scrape api:8000. The gateway returns 502/503; new appointments are rejected."
+          runbook: "1) docker compose ps api + logs api (Node crash? OOM?). 2) Check db/queue health — /ready fails fast if deps are down. 3) Restart api; the queue preserves already-enqueued work. 4) If flapping, see INCIDENT record in docs/INCIDENTS.md."
+
+      - alert: HighErrorRate
+        expr: sum(rate(api_errors_total[5m])) / sum(rate(api_requests_total[5m])) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API error ratio above 5% for 2m"
+          description: "Clients are receiving 4xx/5xx (bad payloads or enqueue failures against Mongo/Redis)."
+          runbook: "1) Grafana API error-rate panel + api logs (422 = client payloads; 503 = Mongo/Redis trouble). 2) If 503s, follow DBUnavailable/queue checks. 3) If a bad deploy caused it, roll back via scripts/pipeline.sh previous tag."
+
+      - alert: ExcessiveLatency
+        expr: sum(rate(api_latency_ms_sum[5m])) / sum(rate(api_requests_total[5m])) > 500
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API mean latency above 500ms for 2m (baseline ~16ms)"
+          description: "Enqueue path is slow — usually Mongo/Redis saturation or host CPU pressure."
+          runbook: "1) Compare queue-depth + worker-latency panels (slow consumer vs slow DB?). 2) docker stats for CPU/mem. 3) Scale workers if queue grows; load-test notes in docs/CICD.md Phase 4 section."
+
+      - alert: WorkerDown
+        expr: up{job="worker"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Worker is down (no successful scrape for 1m)"
+          description: "No queue consumption: queue depth grows, appointments stay queued. Nothing is lost (jobs persist in Redis)."
+          runbook: "1) docker compose ps worker + logs worker. 2) Restart worker (restart policy is on-failure; manual: up -d worker). 3) Watch queue drain to 0. Full lifecycle: docs/INCIDENTS.md INC-01."
+
+      - alert: QueueBacklog
+        expr: api_queue_depth > 15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Queue depth above 15 for 2m"
+          description: "Producers outrun consumers (worker down/slow, EHR timeouts piling up, or genuine overload)."
+          runbook: "1) Check WorkerDown + worker-fail-mode (worker_fail_mode_info). 2) Check EHR outcome mix (timeouts?). 3) Scale: --scale worker=N. 4) If sustained, see load-test findings in docs/CICD.md."
+
+      - alert: DBUnavailable
+        expr: mongodb_up == 0 or up{job="mongodb"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "MongoDB unreachable (exporter down or failing to connect)"
+          description: "API /ready fails; creates return 503; worker cannot persist. The named volume still holds data."
+          runbook: "1) docker compose ps db + logs db (OOM? disk? 29G free at Phase 4 start — watch disk). 2) Restart db; verify ping. 3) If data lost, run scripts/restore-mongo.sh (drill: docs/CICD.md backup section). Never delete the mongodb_data volume without a verified backup."
+
+      - alert: DeploymentFailed
+        expr: pipeline_last_run_success == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Last pipeline run failed (pushed by scripts/pipeline.sh via pushgateway)"
+          description: "A release was blocked or rolled back. The previous healthy tag keeps serving."
+          runbook: "1) Open the run log in docs/pipeline-evidence/. 2) Fix the gate that tripped (lint/unit/security/health). 3) Re-run scripts/pipeline.sh. History: docs/CICD.md §6-§8."
+
+      - alert: SecurityScanFailed
+        expr: security_scan_last_success == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Last security scan failed (pushed by scripts/pipeline.sh via pushgateway)"
+          description: "Gitleaks/Trivy/compose-lint found something. Deploys are halted until green."
+          runbook: "1) Run bash scripts/security-scan.sh locally for detail. 2) Secret leak? Rotate + purge history handling per docs/SECURITY.md. 3) New app-dep CVE? Bump the dependency, rebuild, re-scan. Never add scan allowlists to silence it."
+
+      - alert: EHROutage
+        expr: sum(rate(worker_ehr_outcomes_total{result!="ok"}[5m])) / sum(rate(worker_ehr_outcomes_total[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Over 20% of EHR calls non-OK for 2m"
+          description: "External dependency degraded: jobs land in processed_ehr_degraded; retries/timeouts climb."
+          runbook: "1) Grafana EHR-outcome-mix panel: which result (5xx/401/503/timeout)? 2) Check ehr-mock mode/health (EHR_MODE env). 3) 401 = credential/config issue (non-retryable) — fix first. 4) Full lifecycle: docs/INCIDENTS.md INC-02."

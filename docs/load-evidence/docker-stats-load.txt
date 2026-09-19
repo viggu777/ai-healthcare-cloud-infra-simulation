@@ -1,0 +1,7 @@
+ai-healthcare-dev-worker-2 CPU:12.98% MEM:34.85MiB / 7.425GiB
+ai-healthcare-dev-grafana-1 CPU:0.12% MEM:75.08MiB / 7.425GiB
+ai-healthcare-dev-prometheus-1 CPU:0.00% MEM:44.05MiB / 7.425GiB
+ai-healthcare-dev-api-1 CPU:0.11% MEM:49.27MiB / 7.425GiB
+ai-healthcare-dev-worker-1 CPU:1.90% MEM:38.91MiB / 7.425GiB
+ai-healthcare-dev-db-1 CPU:2.75% MEM:98.89MiB / 7.425GiB
+ai-healthcare-dev-queue-1 CPU:0.95% MEM:6.766MiB / 7.425GiB

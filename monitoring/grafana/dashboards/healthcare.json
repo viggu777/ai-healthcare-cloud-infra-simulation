@@ -1,0 +1,141 @@
+{
+  "uid": "healthcare-overview",
+  "title": "AI Healthcare Sim — Overview (Phase 4)",
+  "tags": ["phase4", "simulation"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1, "type": "stat", "title": "API up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 0, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"api\"}", "refId": "A" }]
+    },
+    {
+      "id": 2, "type": "stat", "title": "Worker up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 3, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"worker\"}", "refId": "A" }]
+    },
+    {
+      "id": 3, "type": "stat", "title": "Redis up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 6, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"redis\"}", "refId": "A" }]
+    },
+    {
+      "id": 4, "type": "stat", "title": "MongoDB up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 9, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "mongodb_up", "refId": "A" }]
+    },
+    {
+      "id": 5, "type": "stat", "title": "Nginx up",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 3, "x": 12, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "up{job=\"nginx\"}", "refId": "A" }]
+    },
+    {
+      "id": 6, "type": "stat", "title": "Pipeline last run OK",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 4, "x": 15, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "pipeline_last_run_success", "refId": "A" }]
+    },
+    {
+      "id": 7, "type": "stat", "title": "Security scan OK",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 4, "w": 5, "x": 19, "y": 0 },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "security_scan_last_success", "refId": "A" }]
+    },
+    {
+      "id": 10, "type": "timeseries", "title": "API request rate (req/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(api_requests_total[5m]))", "legendFormat": "requests", "refId": "A" }]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "API error rate (req/s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 4 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(api_errors_total[5m]))", "legendFormat": "errors", "refId": "A" }]
+    },
+    {
+      "id": 12, "type": "timeseries", "title": "API mean latency (ms)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 4 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(api_latency_ms_sum[5m])) / sum(rate(api_requests_total[5m]))", "legendFormat": "mean latency", "refId": "A" }]
+    },
+    {
+      "id": 13, "type": "timeseries", "title": "Worker processed / failed / retries (per s)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(worker_processed_total[5m]))", "legendFormat": "processed", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(worker_failed_total[5m]))", "legendFormat": "failed", "refId": "B" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(worker_retries_total[5m]))", "legendFormat": "retries", "refId": "C" }
+      ]
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "Queue depth (jobs)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "api_queue_depth", "legendFormat": "depth", "refId": "A" }]
+    },
+    {
+      "id": 15, "type": "timeseries", "title": "EHR call outcome mix (per s by result)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (result) (rate(worker_ehr_outcomes_total[5m]))", "legendFormat": "{{result}}", "refId": "A" }]
+    },
+    {
+      "id": 16, "type": "timeseries", "title": "Redis ops/s + clients",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 20 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "rate(redis_commands_processed_total[5m])", "legendFormat": "ops/s", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "redis_connected_clients", "legendFormat": "clients", "refId": "B" }
+      ]
+    },
+    {
+      "id": 17, "type": "timeseries", "title": "Nginx active connections",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 20 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "nginx_connections_active", "legendFormat": "active", "refId": "A" }]
+    },
+    {
+      "id": 18, "type": "timeseries", "title": "Deployment version",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 20 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "deployment_info", "legendFormat": "{{service}} {{version}}", "refId": "A" }]
+    },
+    {
+      "id": 19, "type": "timeseries", "title": "Firing alerts",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
+      "options": { "legend": { "showLegend": true }, "tooltip": { "mode": "multi" } },
+      "fieldConfig": { "defaults": {}, "overrides": [] },
+      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "ALERTS{alertstate=\"firing\"}", "legendFormat": "{{alertname}} ({{severity}})", "refId": "A" }]
+    }
+  ]
+}

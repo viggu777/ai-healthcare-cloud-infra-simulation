@@ -1,0 +1,543 @@
+Phase 3 pipeline starting — run tag: p3-demo-broken-ready
+log: docs/pipeline-evidence/pipeline-p3-demo-broken-ready.log
+
+===== [pipeline:p3-demo-broken-ready] STAGE: lint =====
+  [lint-ok] services/api/server.js
+  [lint-ok] services/api/validate.js
+  [lint-ok] services/api/validate.test.js
+  [lint-ok] services/ai-service/server.js
+  [lint-ok] services/worker/worker.js
+  [lint-ok] services/ehr-mock/server.js
+  [lint-ok] compose config dev + prod-like
+
+===== [pipeline:p3-demo-broken-ready] STAGE: unit =====
+TAP version 13
+# Subtest: validateAppointment
+    # Subtest: accepts a valid patient+doctor payload
+    ok 1 - accepts a valid patient+doctor payload
+      ---
+      duration_ms: 2.211015
+      type: 'test'
+      ...
+    # Subtest: ignores extra fields
+    ok 2 - ignores extra fields
+      ---
+      duration_ms: 0.440278
+      type: 'test'
+      ...
+    # Subtest: rejects a missing patient
+    ok 3 - rejects a missing patient
+      ---
+      duration_ms: 0.570235
+      type: 'test'
+      ...
+    # Subtest: rejects a missing doctor
+    ok 4 - rejects a missing doctor
+      ---
+      duration_ms: 0.383349
+      type: 'test'
+      ...
+    # Subtest: rejects non-string types
+    ok 5 - rejects non-string types
+      ---
+      duration_ms: 0.413266
+      type: 'test'
+      ...
+    # Subtest: rejects empty / null / undefined bodies
+    ok 6 - rejects empty / null / undefined bodies
+      ---
+      duration_ms: 0.796464
+      type: 'test'
+      ...
+    1..6
+ok 1 - validateAppointment
+  ---
+  duration_ms: 6.996696
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 118.864821
+
+===== [pipeline:p3-demo-broken-ready] STAGE: security (security-scan.sh as-is) =====
+=== 1/6 non-root audit (Dockerfiles must set an unprivileged USER) ===
+  [PASS] api Dockerfile has unprivileged USER (USER node)
+  [PASS] ai-service Dockerfile has unprivileged USER (USER node)
+  [PASS] worker Dockerfile has unprivileged USER (USER node)
+  [PASS] ehr-mock Dockerfile has unprivileged USER (USER node)
+  [PASS] api runtime user=node
+  [PASS] ai-service runtime user=node
+  [PASS] worker runtime user=node
+  [PASS] ehr-mock runtime user=node
+  NOTE: gateway (nginx:alpine) runs as root by upstream design (master binds :80). Documented in docs/SECURITY.md.
+
+=== 2/6 minimal-image audit ===
+  [PASS] api Dockerfile has no curl
+  [PASS] api base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] ai-service Dockerfile has no curl
+  [PASS] ai-service base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] worker Dockerfile has no curl
+  [PASS] worker base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] ehr-mock Dockerfile has no curl
+  [PASS] ehr-mock base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  Image sizes:
+ai-healthcare/api:0.1.0-dev 345MB
+ai-healthcare/api:p3-demo-healthy1 345MB
+ai-healthcare/worker:0.1.0-dev 339MB
+ai-healthcare/worker:p3-demo-healthy1 339MB
+ai-healthcare/ehr-mock:0.1.0-dev 332MB
+ai-healthcare/ehr-mock:p3-demo-healthy1 332MB
+ai-healthcare/ai-service:0.1.0-dev 332MB
+ai-healthcare/ai-service:p3-demo-healthy1 332MB
+ai-healthcare/ehr-mock:0.1.0 338MB
+ai-healthcare/api:0.1.0 355MB
+ai-healthcare/ai-service:0.1.0 338MB
+ai-healthcare/worker:0.1.0 346MB
+redis:7-alpine 57.8MB
+mongo:7-jammy 1.18GB
+nginx:alpine 93.1MB
+
+=== 3/6 .dockerignore check ===
+  [PASS] api .dockerignore present
+  [PASS] ai-service .dockerignore present
+  [PASS] worker .dockerignore present
+  [PASS] ehr-mock .dockerignore present
+
+=== 4/6 Trivy image scans (severity: HIGH,CRITICAL) ===
+  -- ai-healthcare/api:0.1.0-dev -> docs/security-evidence/trivy-api.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for api (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/ai-service:0.1.0-dev -> docs/security-evidence/trivy-ai-service.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for ai-service (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/worker:0.1.0-dev -> docs/security-evidence/trivy-worker.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for worker (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/ehr-mock:0.1.0-dev -> docs/security-evidence/trivy-ehr-mock.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for ehr-mock (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  Full reports: docs/security-evidence/trivy-*.txt
+
+=== 5/6 Gitleaks secret scan (--no-git, repo is not a git checkout) ===
+  [PASS] gitleaks: no leaks found (see docs/security-evidence/gitleaks.txt)
+
+=== 6/6 Compose security lint ===
+services inspected: ['ai-service', 'api', 'db', 'ehr-mock', 'gateway', 'queue', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO host ports
+[PASS] ai-service publishes NO host ports
+[PASS] worker publishes NO host ports
+[PASS] queue publishes NO host ports
+[PASS] db publishes NO host ports
+[PASS] ehr-mock publishes NO host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 42 pass, 0 fail, 3 warn ----
+  [PASS] compose lint passed (see docs/security-evidence/compose-lint.txt)
+services inspected: ['ai-service', 'api', 'db', 'ehr-mock', 'gateway', 'queue', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO host ports
+[PASS] ai-service publishes NO host ports
+[PASS] worker publishes NO host ports
+[PASS] queue publishes NO host ports
+[PASS] db publishes NO host ports
+[PASS] ehr-mock publishes NO host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 42 pass, 0 fail, 3 warn ----
+
+===================================
+RESULT: 26 passed, 0 failed
+SECURITY SCAN: PASS
+
+===== [pipeline:p3-demo-broken-ready] STAGE: security (trivy app-dependency gate) =====
+(binding trivy gate runs after build, on the newly built tag — see below)
+
+===== [pipeline:p3-demo-broken-ready] STAGE: build (tag: p3-demo-broken-ready) =====
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.31kB done
+#1 DONE 0.0s
+
+#2 [ai-service internal] load build definition from Dockerfile
+#2 transferring dockerfile: 814B 0.0s done
+#2 DONE 0.1s
+
+#3 [ehr-mock internal] load build definition from Dockerfile
+#3 transferring dockerfile: 814B done
+#3 DONE 0.1s
+
+#4 [api internal] load build definition from Dockerfile
+#4 transferring dockerfile: 826B done
+#4 DONE 0.1s
+
+#5 [worker internal] load build definition from Dockerfile
+#5 transferring dockerfile: 814B done
+#5 DONE 0.1s
+
+#6 [ai-service internal] load metadata for docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#6 DONE 0.1s
+
+#7 [ehr-mock internal] load .dockerignore
+#7 transferring context: 184B done
+#7 DONE 0.1s
+
+#8 [ai-service internal] load .dockerignore
+#8 transferring context: 184B done
+#8 DONE 0.1s
+
+#9 [worker internal] load .dockerignore
+#9 transferring context: 184B done
+#9 DONE 0.1s
+
+#10 [api internal] load .dockerignore
+#10 transferring context: 184B done
+#10 DONE 0.1s
+
+#11 [ai-service build 1/4] FROM docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#11 resolve docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#11 resolve docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 0.1s done
+#11 DONE 0.1s
+
+#12 [ehr-mock internal] load build context
+#12 transferring context: 101B done
+#12 DONE 0.1s
+
+#13 [ai-service internal] load build context
+#13 transferring context: 101B done
+#13 DONE 0.1s
+
+#14 [worker internal] load build context
+#14 transferring context: 100B done
+#14 DONE 0.1s
+
+#15 [api internal] load build context
+#15 transferring context: 5.68kB done
+#15 DONE 0.1s
+
+#16 [api build 4/4] RUN npm ci --omit=dev
+#16 CACHED
+
+#17 [api build 3/4] COPY package.json package-lock.json ./
+#17 CACHED
+
+#18 [api stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#18 CACHED
+
+#19 [worker build 3/4] COPY package.json package-lock.json ./
+#19 CACHED
+
+#20 [worker stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#20 CACHED
+
+#21 [worker build 4/4] RUN npm ci --omit=dev
+#21 CACHED
+
+#22 [ai-service stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#22 CACHED
+
+#23 [ai-service build 4/4] RUN npm ci --omit=dev
+#23 CACHED
+
+#24 [ai-service build 3/4] COPY package.json package-lock.json ./
+#24 CACHED
+
+#25 [ai-service stage-1 5/5] COPY server.js ./
+#25 CACHED
+
+#26 [ai-service stage-1 3/5] WORKDIR /app
+#26 CACHED
+
+#27 [ehr-mock stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#27 CACHED
+
+#28 [ehr-mock build 4/4] RUN npm ci --omit=dev
+#28 CACHED
+
+#29 [ai-service build 2/4] WORKDIR /app
+#29 CACHED
+
+#30 [ehr-mock build 3/4] COPY package.json package-lock.json ./
+#30 CACHED
+
+#31 [ai-service stage-1 2/5] RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+#31 CACHED
+
+#32 [worker stage-1 5/5] COPY worker.js ./
+#32 CACHED
+
+#33 [ehr-mock stage-1 5/5] COPY server.js ./
+#33 CACHED
+
+#34 [ehr-mock] exporting to image
+#34 exporting layers done
+#34 exporting manifest sha256:adbd8489677083a36da11f610f7ad45f7abdafcf0053dda72cfe4182b6e83df9 0.0s done
+#34 exporting config sha256:22d1be8952c33ca772419a50edc60058006bdaa6a0381618ee5ab92fdd867b71 0.0s done
+#34 ...
+
+#35 [api stage-1 5/5] COPY server.js validate.js ./
+#35 DONE 0.2s
+
+#36 [worker] exporting to image
+#36 exporting layers done
+#36 exporting manifest sha256:f083ca340177ffe2353192f2bac26126d0efc3dd4994ac05a256af0a65137fe8 0.0s done
+#36 exporting config sha256:9e23afb171e2a328105e7290b7de6535b8413f12298e4e88150d4b90a8e1a4b9 0.0s done
+#36 exporting attestation manifest sha256:e1d62d43ddb3a65cca635c0a0b6203fe72e30561ff2a3552f640c6861b9a8c52
+#36 exporting attestation manifest sha256:e1d62d43ddb3a65cca635c0a0b6203fe72e30561ff2a3552f640c6861b9a8c52 0.2s done
+#36 exporting manifest list sha256:1676a46534dda4232aa85239c5ce6d8809f78a6f2d0df045b9e4e273383da6c4
+#36 exporting manifest list sha256:1676a46534dda4232aa85239c5ce6d8809f78a6f2d0df045b9e4e273383da6c4 0.1s done
+#36 naming to docker.io/ai-healthcare/worker:p3-demo-broken-ready
+#36 naming to docker.io/ai-healthcare/worker:p3-demo-broken-ready 0.1s done
+#36 unpacking to docker.io/ai-healthcare/worker:p3-demo-broken-ready 0.0s done
+#36 DONE 0.8s
+
+#37 [ai-service] exporting to image
+#37 exporting layers done
+#37 exporting manifest sha256:41339b0503c9a06d5c0a2bf1a7dfd5cefa3fe237e1827a3e0d036be0bd33799e 0.0s done
+#37 exporting config sha256:9814d1cb8f43ad608016b6c5e87e4eb9fea974f172cd97ec5f4e5ead5bc7f79e 0.0s done
+#37 exporting attestation manifest sha256:bdaa5f30656943bf3bc05865ec162008344427eca52848024d49039b0decf282 0.3s done
+#37 exporting manifest list sha256:503cf8747e9b6e09022310a83cf2c64e685a75ea52761bb4a44d70fe4ec99742 0.1s done
+#37 naming to docker.io/ai-healthcare/ai-service:p3-demo-broken-ready 0.1s done
+#37 unpacking to docker.io/ai-healthcare/ai-service:p3-demo-broken-ready 0.0s done
+#37 DONE 0.8s
+
+#34 [ehr-mock] exporting to image
+#34 exporting attestation manifest sha256:5453c8f0a056f2b201fe6978cd5f6b7387e93959139579e7051c324842717749 0.3s done
+#34 exporting manifest list sha256:266fd38e1ccd875edbad3ba4c6d00f398f88629bc05aeb947e6a23611af4eade 0.1s done
+#34 naming to docker.io/ai-healthcare/ehr-mock:p3-demo-broken-ready 0.0s done
+#34 unpacking to docker.io/ai-healthcare/ehr-mock:p3-demo-broken-ready 0.0s done
+#34 DONE 0.8s
+
+#38 [api] exporting to image
+#38 exporting layers 1.0s done
+#38 exporting manifest sha256:769f6baed0b011122f761d5542906c0e218f75efe0471870872b3c0954c38bdd 0.1s done
+#38 exporting config sha256:f4f6ca80eeb54a1fb3e6434241a10ca250e43eba7044631411d9001b31c204b7 0.1s done
+#38 exporting attestation manifest sha256:2be2d20a2c1161d5a6ef90fa7748e0c94f34a8a5f87e0cafffc8b0a974edd9df 0.1s done
+#38 exporting manifest list sha256:624b3014a86652977a124d74f9767d3e7992aeb9e37ba2432721150d8b829138
+#38 exporting manifest list sha256:624b3014a86652977a124d74f9767d3e7992aeb9e37ba2432721150d8b829138 0.1s done
+#38 naming to docker.io/ai-healthcare/api:p3-demo-broken-ready 0.0s done
+#38 unpacking to docker.io/ai-healthcare/api:p3-demo-broken-ready 0.1s done
+#38 DONE 1.6s
+
+#39 [worker] resolving provenance for metadata file
+#39 ...
+
+#40 [ai-service] resolving provenance for metadata file
+#40 DONE 0.3s
+
+#39 [worker] resolving provenance for metadata file
+#39 DONE 0.2s
+
+#41 [ehr-mock] resolving provenance for metadata file
+#41 DONE 0.2s
+
+#42 [api] resolving provenance for metadata file
+#42 DONE 0.0s
+ ai-healthcare/api:p3-demo-broken-ready  Built
+ ai-healthcare/ai-service:p3-demo-broken-ready  Built
+ ai-healthcare/worker:p3-demo-broken-ready  Built
+ ai-healthcare/ehr-mock:p3-demo-broken-ready  Built
+built + dual-tagged (:p3-demo-broken-ready exact, :0.1.0-dev alias):
+ai-healthcare/ai-service:0.1.0-dev 332MB
+ai-healthcare/ai-service:p3-demo-broken-ready 332MB
+ai-healthcare/api:0.1.0-dev 345MB
+ai-healthcare/api:p3-demo-broken-ready 345MB
+ai-healthcare/ehr-mock:0.1.0-dev 332MB
+ai-healthcare/ehr-mock:p3-demo-broken-ready 332MB
+ai-healthcare/worker:0.1.0-dev 339MB
+ai-healthcare/worker:p3-demo-broken-ready 339MB
+
+===== [pipeline:p3-demo-broken-ready] STAGE: security (trivy app-dependency gate on NEW images) =====
+=== Trivy app-dependency gate (tag: 0.1.0-dev; OS baseline non-blocking per SECURITY.md R1) ===
+-- ai-healthcare/api:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] api app dependencies clean
+-- ai-healthcare/ai-service:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] ai-service app dependencies clean
+-- ai-healthcare/worker:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] worker app dependencies clean
+-- ai-healthcare/ehr-mock:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] ehr-mock app dependencies clean
+===================================
+TRIVY GATE: PASS
+
+===== [pipeline:p3-demo-broken-ready] STAGE: deploy dev =====
+previous dev tag: 'p3-demo-healthy1'
+ Container ai-healthcare-dev-queue-1  Running
+ Container ai-healthcare-dev-ehr-mock-1  Recreate
+ Container ai-healthcare-dev-db-1  Running
+ Container ai-healthcare-dev-worker-1  Recreate
+ Container ai-healthcare-dev-ai-service-1  Recreate
+ Container ai-healthcare-dev-api-1  Recreate
+ Container ai-healthcare-dev-ehr-mock-1  Recreated
+ Container ai-healthcare-dev-ai-service-1  Recreated
+ Container ai-healthcare-dev-worker-1  Recreated
+ Container ai-healthcare-dev-api-1  Recreated
+ Container ai-healthcare-dev-gateway-1  Running
+ Container ai-healthcare-dev-ai-service-1  Starting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-ehr-mock-1  Starting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-ehr-mock-1  Started
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-worker-1  Starting
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-api-1  Starting
+ Container ai-healthcare-dev-ai-service-1  Started
+ Container ai-healthcare-dev-worker-1  Started
+ Container ai-healthcare-dev-api-1  Started
+ Container ai-healthcare-dev-api-1  Waiting
+ Container ai-healthcare-dev-api-1  Healthy
+
+===== [pipeline:p3-demo-broken-ready] STAGE: health gate dev =====
+health gate (dev): polling http://localhost:8080/ready (timeout 120s)…
+  …not ready yet (~0s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~5s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~10s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~15s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~20s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~25s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~30s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~35s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~40s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~45s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~50s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~55s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~60s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~65s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~70s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~75s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~80s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~85s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~90s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~95s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~100s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~105s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~110s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+  …not ready yet (~115s): {"ready":false,"checks":{"db":"fail: INJECTED-BREAK","queue":"fail: INJECTED-BREAK"}}
+health gate (dev): TIMEOUT after 120s waiting for http://localhost:8080/ready
+
+##### PIPELINE BLOCKED at stage 'health gate dev': dev health gate failed
+
+!!!!! ROLLBACK (environments/dev.env): stage 'health gate dev' failed — restoring previous tag 'p3-demo-healthy1'
+ Container ai-healthcare-dev-ehr-mock-1  Recreate
+ Container ai-healthcare-dev-ai-service-1  Recreate
+ Container ai-healthcare-dev-queue-1  Running
+ Container ai-healthcare-dev-db-1  Running
+ Container ai-healthcare-dev-worker-1  Recreate
+ Container ai-healthcare-dev-api-1  Recreate
+ Container ai-healthcare-dev-worker-1  Recreated
+ Container ai-healthcare-dev-ai-service-1  Recreated
+ Container ai-healthcare-dev-ehr-mock-1  Recreated
+ Container ai-healthcare-dev-api-1  Recreated
+ Container ai-healthcare-dev-gateway-1  Running
+ Container ai-healthcare-dev-ehr-mock-1  Starting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-ai-service-1  Starting
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-api-1  Starting
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-worker-1  Starting
+ Container ai-healthcare-dev-ai-service-1  Started
+ Container ai-healthcare-dev-ehr-mock-1  Started
+ Container ai-healthcare-dev-worker-1  Started
+ Container ai-healthcare-dev-api-1  Started
+ Container ai-healthcare-dev-api-1  Waiting
+ Container ai-healthcare-dev-api-1  Healthy
+health gate (rollback-verify): polling http://localhost:8080/ready (timeout 60s)…
+health gate (rollback-verify): READY after ~0s — {"ready":true,"checks":{"db":"ok","queue":"ok"}}
+ROLLBACK OK: previous tag 'p3-demo-healthy1' serving again on http://localhost:8080
+##### RESULT: FAIL (see docs/pipeline-evidence/pipeline-p3-demo-broken-ready.log)

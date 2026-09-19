@@ -1,0 +1,76 @@
+services inspected: ['ai-service', 'alertmanager', 'api', 'db', 'ehr-mock', 'gateway', 'grafana', 'mongodb-exporter', 'nginx-exporter', 'prometheus', 'pushgateway', 'queue', 'redis-exporter', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO publicly reachable host ports
+[PASS] ai-service publishes NO publicly reachable host ports
+[PASS] worker publishes NO publicly reachable host ports
+[PASS] queue publishes NO publicly reachable host ports
+[PASS] db publishes NO publicly reachable host ports
+[PASS] ehr-mock publishes NO publicly reachable host ports
+[PASS] prometheus publishes NO publicly reachable host ports
+[PASS] alertmanager publishes NO publicly reachable host ports
+[PASS] pushgateway publishes NO publicly reachable host ports
+[PASS] grafana publishes NO publicly reachable host ports
+[WARN] grafana host-local admin port(s) ['127.0.0.1:${GRAFANA_PORT:-3000}:3000'] (documented exception, see docs/SECURITY.md)
+[PASS] redis-exporter publishes NO publicly reachable host ports
+[PASS] mongodb-exporter publishes NO publicly reachable host ports
+[PASS] nginx-exporter publishes NO publicly reachable host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] prometheus privileged!=true
+[PASS] prometheus no host network/pid mode
+[PASS] prometheus no extra cap_add (found [])
+[PASS] alertmanager privileged!=true
+[PASS] alertmanager no host network/pid mode
+[PASS] alertmanager no extra cap_add (found [])
+[PASS] pushgateway privileged!=true
+[PASS] pushgateway no host network/pid mode
+[PASS] pushgateway no extra cap_add (found [])
+[PASS] grafana privileged!=true
+[PASS] grafana no host network/pid mode
+[PASS] grafana no extra cap_add (found [])
+[PASS] redis-exporter privileged!=true
+[PASS] redis-exporter no host network/pid mode
+[PASS] redis-exporter no extra cap_add (found [])
+[PASS] mongodb-exporter privileged!=true
+[PASS] mongodb-exporter no host network/pid mode
+[PASS] mongodb-exporter no extra cap_add (found [])
+[PASS] nginx-exporter privileged!=true
+[PASS] nginx-exporter no host network/pid mode
+[PASS] nginx-exporter no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 70 pass, 0 fail, 4 warn ----

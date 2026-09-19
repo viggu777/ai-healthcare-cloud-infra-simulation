@@ -1,0 +1,47 @@
+services inspected: ['ai-service', 'api', 'db', 'ehr-mock', 'gateway', 'queue', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO host ports
+[PASS] ai-service publishes NO host ports
+[PASS] worker publishes NO host ports
+[PASS] queue publishes NO host ports
+[PASS] db publishes NO host ports
+[PASS] ehr-mock publishes NO host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 42 pass, 0 fail, 3 warn ----

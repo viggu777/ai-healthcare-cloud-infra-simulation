@@ -1,0 +1,116 @@
+# Phase 3 — DevSecOps pipeline (CI definition).
+#
+# This workflow is the CI twin of scripts/pipeline.sh: identical stage order
+# (lint → unit → security-scan.sh as-is → build → trivy gate → deploy dev →
+# health gate → promote prod-like → post-promote check → rollback), identical
+# gates, identical rollback semantics. Tags use github.sha so every running
+# container is traceable to exact source.
+#
+# Execution note (docs/CICD.md): the demonstrated artifact is scripts/pipeline.sh
+# run locally (this repo has no git remote and no runner minutes allocated).
+# This file is the drop-in CI definition for a connected clone: push/PR runs the
+# full pipeline against two ephemeral Compose projects on the runner
+# (ai-healthcare-dev on :8080, ai-healthcare-prodlike on :8081), exactly as the
+# local script does on the Ubuntu host.
+name: pipeline
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  DOCKER_CONFIG: /tmp/docker-nocreds
+  RUN_TAG: ${{ github.sha }}
+
+jobs:
+  lint-and-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: lint (syntax gate, all services)
+        run: |
+          for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
+                   services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js; do
+            node --check "$f" && echo "  [lint-ok] $f"
+          done
+      - name: compose config valid (dev + prod-like)
+        run: |
+          docker compose --env-file environments/dev.env config -q
+          docker compose --env-file environments/prod.env config -q
+      - name: unit tests
+        run: node --test services/api/validate.test.js
+
+  security:
+    runs-on: ubuntu-latest
+    needs: lint-and-unit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: build current images (scan target)
+        run: docker compose --env-file environments/dev.env build api ai-service worker ehr-mock
+      - name: security gate as-is (gitleaks + trivy report + compose lint)
+        run: bash scripts/security-scan.sh
+      - name: trivy app-dependency gate (exit-code gate, blocks on HIGH/CRITICAL in app deps)
+        run: bash scripts/trivy-gate.sh
+
+  build-deploy-promote:
+    runs-on: ubuntu-latest
+    needs: security
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: build + SHA-tag images
+        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env build api ai-service worker ehr-mock
+      - name: trivy gate on newly built images (binding)
+        run: bash scripts/trivy-gate.sh --tag "${{ github.sha }}"
+      - name: snapshot previous tags (rollback source)
+        run: |
+          echo "PREV_DEV=$(docker compose --env-file environments/dev.env ps -q api 2>/dev/null | xargs -r docker inspect --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || true)" >> "$GITHUB_ENV"
+          echo "PREV_PROD=$(docker compose --env-file environments/prod.env ps -q api 2>/dev/null | xargs -r docker inspect --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || true)" >> "$GITHUB_ENV"
+      - name: deploy dev
+        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env up -d
+      - name: health gate dev + smoke + workload
+        run: |
+          GATEWAY_URL=http://localhost:8080 bash scripts/smoke.sh
+          python3 scripts/workload.py http://localhost:8080 10
+      - name: rollback dev on failure
+        if: failure()
+        run: |
+          printf 'pipeline_last_run_success 0\npipeline_last_run_timestamp_seconds %s\nsecurity_scan_last_success 1\n' "$(date +%s)" | docker compose --env-file environments/dev.env exec -i api node -e "let b='';process.stdin.on('data',d=>b+=d).on('end',()=>{fetch('http://pushgateway:9091/metrics/job/pipeline/instance/${{ github.sha }}',{method:'PUT',headers:{'Content-Type':'text/plain'},body:b}).catch(()=>{})});" || true
+          if [ -n "${{ env.PREV_DEV }}" ]; then
+            APP_VERSION="${{ env.PREV_DEV }}" docker compose --env-file environments/dev.env up -d
+          else
+            docker compose --env-file environments/dev.env down
+          fi
+          exit 1
+      - name: promote prod-like
+        if: success()
+        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env up -d
+      - name: post-promote health check
+        if: success()
+        run: GATEWAY_URL=http://localhost:8081 bash scripts/smoke.sh
+      - name: rollback prod-like on failure
+        if: failure()
+        run: |
+          printf 'pipeline_last_run_success 0\npipeline_last_run_timestamp_seconds %s\nsecurity_scan_last_success 1\n' "$(date +%s)" | docker compose --env-file environments/dev.env exec -i api node -e "let b='';process.stdin.on('data',d=>b+=d).on('end',()=>{fetch('http://pushgateway:9091/metrics/job/pipeline/instance/${{ github.sha }}',{method:'PUT',headers:{'Content-Type':'text/plain'},body:b}).catch(()=>{})});" || true
+          if [ -n "${{ env.PREV_PROD }}" ]; then
+            APP_VERSION="${{ env.PREV_PROD }}" docker compose --env-file environments/prod.env up -d
+          else
+            docker compose --env-file environments/prod.env down
+          fi
+          exit 1
+      - name: traceability (running tags)
+        if: success()
+        run: |
+          APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env ps
+          APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env ps
+          printf 'pipeline_last_run_success 1\npipeline_last_run_timestamp_seconds %s\nsecurity_scan_last_success 1\n' "$(date +%s)" | docker compose --env-file environments/dev.env exec -i api node -e "let b='';process.stdin.on('data',d=>b+=d).on('end',()=>{fetch('http://pushgateway:9091/metrics/job/pipeline/instance/${{ github.sha }}',{method:'PUT',headers:{'Content-Type':'text/plain'},body:b}).catch(()=>{})});" || true
