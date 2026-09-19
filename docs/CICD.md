@@ -59,7 +59,8 @@ Every built image carries the **run tag**: the git SHA when run inside a git che
 `local-<timestamp>`. A semver alias from the env file (`0.1.0-dev` / `0.1.0`) is kept
 alongside for humans; running containers always carry the exact run tag, shown in the
 traceability table each run ends with. Demo tags used here (`p3-demo-healthy1`, …)
-stand in for SHAs since this checkout has no git history.
+stand in for SHAs from before this repo had git history (P0.1 `git init`); all runs
+since P0.1 use real short SHAs (`git rev-parse --short HEAD`).
 
 ## 5. Digest pinning (closes Phase 2 R5)
 

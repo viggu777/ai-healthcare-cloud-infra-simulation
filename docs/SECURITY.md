@@ -19,7 +19,7 @@ Spec §3 asks for a **relational** database. The project uses **MongoDB 7** inst
 | 2 | Minimal-image audit | Base-image pin check + `curl`/npm presence + `docker images` sizes | All custom: multi-stage `node:22-slim`, no `curl`, **npm toolchain stripped** from runtime (§3-F5). Sizes: api 345MB, worker 339MB, ai/ehr 332MB. Infra: nginx 93MB, redis 58MB, mongo 1.18GB. |
 | 3 | `.dockerignore` | Presence check per service | 4/4 present (excludes `node_modules/`, `.git`, `.env`, `environments/`, docs). Carried over from Python phase. |
 | 4 | Trivy image scan (HIGH,CRITICAL) | `trivy image` on all 4 custom images | App npm deps: **0 findings** (express 4.22.3, mongodb 6.21.0, ioredis 5.11.1 clean). npm-toolchain CVEs: **fixed to zero** (§3-F5). Debian bookworm OS: 52 HIGH + 4 CRITICAL with **no upstream fix** (see §5). |
-| 5 | Gitleaks secret scan | `gitleaks detect --no-git` (repo has no `.git`) | **No leaks found**. Secrets only via env files/placeholders. |
+| 5 | Gitleaks secret scan | `gitleaks detect` in git mode (`.git` present since P0.1; `--no-git` fallback outside a checkout) | **No leaks found**. Secrets only via env files/placeholders. |
 | 6 | Compose lint | `scripts/compose-lint.py` (42 assertions) | **42 pass, 0 fail**, 3 warn (documented exceptions, §5). Sole public port = gateway; `private internal:true`; no `privileged`/host-mode/dangerous `cap_add`. |
 
 ## 3. Findings fixed (Phase 2, both stacks)

@@ -62,6 +62,7 @@ if [ -n "$TAG_ARG" ]; then
 elif GIT_SHA="$(git rev-parse --short HEAD 2>/dev/null)"; then
   RUN_TAG="$GIT_SHA"
 else
+  echo "WARNING: no git SHA available (.git missing?) — falling back to timestamp tag. Auditability degraded." >&2
   RUN_TAG="local-$(date +%Y%m%d-%H%M%S)"
 fi
 
