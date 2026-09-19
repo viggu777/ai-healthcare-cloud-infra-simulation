@@ -291,7 +291,7 @@ Stages map directly to PDF §12–§13: validation → testing → security chec
 | Database health | Mongo exporter, `/ready` composite | Prometheus | Grafana panel + alert |
 | EHR health | Worker-reported call outcome metrics (success/slow/timeout/error rate) | Prometheus | Grafana panel + alert |
 | Deployment health | CI/CD health-gate result, deployed version label | CI job output / a `deployment_info` metric exposed by API | Grafana panel (annotation) |
-| Alerts | Prometheus Alertmanager rules | — | Notification (console/log/webhook — free-tier appropriate) |
+| Alerts | Prometheus Alertmanager rules | — | Notification to a local file sink: Alertmanager webhooks `alert-logger:9089`, which appends one JSON line per firing/resolved delivery to `monitoring/alert-notifications/` on the host (P1.4; free-tier appropriate, paging integrations remain future) |
 
 This satisfies PDF §16 (logging, metrics, health checks, operational dashboard) and §17 (alerting on API unavailability, high error rate, worker failure, queue backlog, DB unavailability, deployment failure) — **implemented in Phase 4**: `/metrics/prom` text endpoints on api/worker, nginx stub_status, redis/mongo/nginx exporters, Pushgateway for pipeline status, provisioned Grafana dashboard (17 panels), 9 Alertmanager rules with runbook annotations.
 
@@ -505,7 +505,7 @@ the IaC-recreation requirement is met by versioned Compose (down/up proven).
 | Failure tolerance: API/worker/EHR/queue/DB/deploy/config (§14) | Restart policies, retries, circuit breaker, health gates | Documented per-component in §9 | 1 (worker/queue proven) / 3 (deploy proven: rollback demo) / 4 (incident lifecycles) | Worker-failure + queue-drain proven in Phase 1; unhealthy-deploy rollback proven in Phase 3; INC-01/INC-02 lifecycles with telemetry in Phase 4 |
 | Independent API/worker scaling, measured performance (§15) | `--scale`, k6 | Compose scale flags; k6 scripts | 1 (scale proven) / 4 (formal load tests) | Nginx static-upstream limitation noted |
 | Logging, metrics, health checks, dashboard (§16) | `/health`,`/ready`,`/metrics` + `/metrics/prom`, Prometheus, Grafana | Text exposition endpoints + 3 exporters + provisioned 17-panel dashboard | 1 (endpoints) / 4 (done: scraped, visualized) | Dashboard live on 127.0.0.1:3000/3001 |
-| Actionable alerts (§17) | Prometheus Alertmanager rules | 10 rules (API/worker/queue/DB/deploy/security/EHR/exporter) with runbook annotations | 4 (done: firing proven — QueueBacklog, WorkerDown, EHROutage) | Receiver is a discard webhook (paging = future) |
+| Actionable alerts (§17) | Prometheus Alertmanager rules | 10 rules (API/worker/queue/DB/deploy/security/EHR/exporter) with runbook annotations | 4 (done: firing proven — QueueBacklog, WorkerDown, EHROutage) | Receiver posts to a local `alert-logger` file sink (firing + resolved proven with artifacts, P1.4); real paging (PagerDuty/Slack) is future P2 |
 | Incident simulation w/ full lifecycle report (§18) | Fault injection (stop worker, break EHR) + telemetry | Two incidents, both documented (INC-01 full) | 4 (done) | `docs/INCIDENTS.md` |
 | Backup/recovery of persistent state (§19) | `mongodump`/`mongorestore`, named volume | Scripted 1519→1419→1519 drill | 4 (done) | `docs/RESILIENCE.md` §6 |
 | SPOF analysis (§20) | `docs/SPOF.md` (reuses R1–R7 framing) | Covers API/worker/queue/DB/EHR/deployment/monitoring + cost + auditability | 4 (done) | |

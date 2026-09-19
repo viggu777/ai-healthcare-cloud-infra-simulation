@@ -1,4 +1,4 @@
-services inspected: ['ai-service', 'alertmanager', 'api', 'db', 'ehr-mock', 'gateway', 'grafana', 'mongodb-exporter', 'nginx-exporter', 'prometheus', 'pushgateway', 'queue', 'redis-exporter', 'worker']
+services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 'ehr-mock', 'gateway', 'grafana', 'mongodb-exporter', 'nginx-exporter', 'prometheus', 'pushgateway', 'queue', 'redis-exporter', 'worker']
 [PASS] gateway publishes host port (sole ingress, expected)
 [PASS] api publishes NO publicly reachable host ports
 [PASS] ai-service publishes NO publicly reachable host ports
@@ -8,6 +8,7 @@ services inspected: ['ai-service', 'alertmanager', 'api', 'db', 'ehr-mock', 'gat
 [PASS] ehr-mock publishes NO publicly reachable host ports
 [PASS] prometheus publishes NO publicly reachable host ports
 [PASS] alertmanager publishes NO publicly reachable host ports
+[PASS] alert-logger publishes NO publicly reachable host ports
 [PASS] pushgateway publishes NO publicly reachable host ports
 [PASS] grafana publishes NO publicly reachable host ports
 [WARN] grafana host-local admin port(s) ['127.0.0.1:${GRAFANA_PORT:-3000}:3000'] (documented exception, see docs/SECURITY.md)
@@ -47,6 +48,9 @@ services inspected: ['ai-service', 'alertmanager', 'api', 'db', 'ehr-mock', 'gat
 [PASS] alertmanager privileged!=true
 [PASS] alertmanager no host network/pid mode
 [PASS] alertmanager no extra cap_add (found [])
+[PASS] alert-logger privileged!=true
+[PASS] alert-logger no host network/pid mode
+[PASS] alert-logger no extra cap_add (found [])
 [PASS] pushgateway privileged!=true
 [PASS] pushgateway no host network/pid mode
 [PASS] pushgateway no extra cap_add (found [])
@@ -73,4 +77,4 @@ services inspected: ['ai-service', 'alertmanager', 'api', 'db', 'ehr-mock', 'gat
 [WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
----- summary: 70 pass, 0 fail, 4 warn ----
+---- summary: 74 pass, 0 fail, 4 warn ----

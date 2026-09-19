@@ -35,7 +35,8 @@ jobs:
       - name: lint (syntax gate, all services)
         run: |
           for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
-                   services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js; do
+                   services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js \
+                   services/alert-logger/server.js; do
             node --check "$f" && echo "  [lint-ok] $f"
           done
       - name: compose config valid (dev + prod-like)
@@ -55,7 +56,7 @@ jobs:
         with:
           node-version: "22"
       - name: build current images (scan target)
-        run: docker compose --env-file environments/dev.env build api ai-service worker ehr-mock
+        run: docker compose --env-file environments/dev.env build api ai-service worker ehr-mock alert-logger
       - name: security gate as-is (gitleaks + trivy report + compose lint)
         run: bash scripts/security-scan.sh
       - name: trivy app-dependency gate (exit-code gate, blocks on HIGH/CRITICAL in app deps)
@@ -70,7 +71,7 @@ jobs:
         with:
           node-version: "22"
       - name: build + SHA-tag images
-        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env build api ai-service worker ehr-mock
+        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env build api ai-service worker ehr-mock alert-logger
       - name: trivy gate on newly built images (binding)
         run: bash scripts/trivy-gate.sh --tag "${{ github.sha }}"
       - name: snapshot previous tags (rollback source)

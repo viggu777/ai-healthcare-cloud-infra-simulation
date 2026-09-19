@@ -32,7 +32,7 @@ ok()   { echo "  [PASS] $1"; PASS=$((PASS+1)); }
 bad()  { echo "  [FAIL] $1"; FAIL=$((FAIL+1)); }
 
 echo "=== 1/6 non-root audit (Dockerfiles must set an unprivileged USER) ==="
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   df="services/$svc/Dockerfile"
   if grep -qE "^USER (node|appuser)" "$df"; then
     ok "$svc Dockerfile has unprivileged USER ($(grep '^USER' "$df"))"
@@ -41,7 +41,7 @@ for svc in api ai-service worker ehr-mock; do
   fi
 done
 # Runtime check (only if stack is up; otherwise informational)
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   cname="$(docker compose --env-file "$ENV_FILE" ps -q "$svc" 2>/dev/null || true)"
   if [ -n "$cname" ]; then
     user="$(docker inspect "$cname" --format '{{.Config.User}}' 2>/dev/null || echo '?')"
@@ -54,7 +54,7 @@ echo "  NOTE: gateway (nginx:alpine) runs as root by upstream design (master bin
 
 echo ""
 echo "=== 2/6 minimal-image audit ==="
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   df="services/$svc/Dockerfile"
   if grep -qiE "apt-get install.*curl|install -y[^&]*curl|curl " "$df"; then
     bad "$svc Dockerfile still installs curl (unnecessary — healthchecks use node fetch)"
@@ -72,7 +72,7 @@ docker images --format "  {{.Repository}}:{{.Tag}} {{.Size}}" 2>/dev/null | grep
 
 echo ""
 echo "=== 3/6 .dockerignore check ==="
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   if [ -f "services/$svc/.dockerignore" ]; then
     ok "$svc .dockerignore present"
   else
@@ -84,7 +84,7 @@ echo ""
 echo "=== 4/6 Trivy image scans (severity: $SEVERITY) ==="
 # Resolve APP_VERSION from env file for accurate tags
 APP_VERSION="$(grep -E '^APP_VERSION=' "$ENV_FILE" | cut -d= -f2 || echo 0.1.0-dev)"
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   img="ai-healthcare/$svc:$APP_VERSION"
   out="$EVIDENCE_DIR/trivy-$svc.txt"
   echo "  -- $img -> $out"

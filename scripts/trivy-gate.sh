@@ -35,7 +35,7 @@ fi
 
 FAIL=0
 echo "=== Trivy app-dependency gate (tag: $APP_VERSION; OS baseline non-blocking per SECURITY.md R1) ==="
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   img="ai-healthcare/$svc:$APP_VERSION"
   echo "-- $img"
   result="$(docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \

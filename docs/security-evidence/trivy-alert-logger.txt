@@ -1,165 +1,29 @@
-2026-09-19T14:15:21Z	INFO	[vuln] Vulnerability scanning is enabled
-2026-09-19T14:15:21Z	INFO	[secret] Secret scanning is enabled
-2026-09-19T14:15:21Z	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
-2026-09-19T14:15:21Z	INFO	[secret] Please see https://trivy.dev/docs/v0.74/guide/scanner/secret#recommendation for faster secret detection
-2026-09-19T14:15:21Z	INFO	Detected OS	family="debian" version="12.15"
-2026-09-19T14:15:21Z	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=88
-2026-09-19T14:15:21Z	INFO	Number of language-specific files	num=1
-2026-09-19T14:15:21Z	INFO	[node-pkg] Detecting vulnerabilities...
-2026-09-19T14:15:21Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.74/guide/scanner/vulnerability#severity-selection for details.
+2026-09-19T14:15:25Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-09-19T14:15:25Z	INFO	[secret] Secret scanning is enabled
+2026-09-19T14:15:25Z	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2026-09-19T14:15:25Z	INFO	[secret] Please see https://trivy.dev/docs/v0.74/guide/scanner/secret#recommendation for faster secret detection
+2026-09-19T14:15:29Z	INFO	Detected OS	family="debian" version="12.15"
+2026-09-19T14:15:29Z	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=88
+2026-09-19T14:15:29Z	INFO	Number of language-specific files	num=1
+2026-09-19T14:15:29Z	INFO	[node-pkg] Detecting vulnerabilities...
+2026-09-19T14:15:29Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.74/guide/scanner/vulnerability#severity-selection for details.
 
 Report Summary
 
-┌───────────────────────────────────────────────────────┬──────────┬─────────────────┬─────────┐
-│                        Target                         │   Type   │ Vulnerabilities │ Secrets │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ ai-healthcare/ai-service:0.1.0-dev (debian 12.15)     │  debian  │       56        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/accepts/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/array-flatten/package.json           │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/body-parser/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/bytes/package.json                   │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/call-bind-apply-helpers/package.json │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/call-bound/package.json              │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/content-disposition/package.json     │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/content-type/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/cookie-signature/package.json        │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/cookie/package.json                  │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/debug/package.json                   │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/depd/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/destroy/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/dunder-proto/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/ee-first/package.json                │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/encodeurl/package.json               │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/es-define-property/package.json      │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/es-errors/package.json               │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/es-object-atoms/package.json         │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/escape-html/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/etag/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/express/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/finalhandler/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/forwarded/package.json               │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/fresh/package.json                   │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/function-bind/package.json           │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/get-intrinsic/package.json           │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/get-proto/package.json               │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/gopd/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/has-symbols/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/hasown/package.json                  │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/http-errors/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/iconv-lite/package.json              │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/inherits/package.json                │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/ipaddr.js/package.json               │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/math-intrinsics/package.json         │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/media-typer/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/merge-descriptors/package.json       │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/methods/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/mime-db/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/mime-types/package.json              │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/mime/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/ms/package.json                      │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/negotiator/package.json              │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/object-inspect/package.json          │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/on-finished/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/parseurl/package.json                │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/path-to-regexp/package.json          │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/proxy-addr/package.json              │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/qs/package.json                      │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/range-parser/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/raw-body/package.json                │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/safe-buffer/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/safer-buffer/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/send/node_modules/ms/package.json    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/send/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/serve-static/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/setprototypeof/package.json          │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/side-channel-list/package.json       │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/side-channel-map/package.json        │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/side-channel-weakmap/package.json    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/side-channel/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/statuses/package.json                │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/toidentifier/package.json            │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/type-is/package.json                 │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/unpipe/package.json                  │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/utils-merge/package.json             │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ app/node_modules/vary/package.json                    │ node-pkg │        0        │    -    │
-├───────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
-│ opt/yarn-v1.22.22/package.json                        │ node-pkg │        0        │    -    │
-└───────────────────────────────────────────────────────┴──────────┴─────────────────┴─────────┘
+┌─────────────────────────────────────────────────────┬──────────┬─────────────────┬─────────┐
+│                       Target                        │   Type   │ Vulnerabilities │ Secrets │
+├─────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
+│ ai-healthcare/alert-logger:0.1.0-dev (debian 12.15) │  debian  │       56        │    -    │
+├─────────────────────────────────────────────────────┼──────────┼─────────────────┼─────────┤
+│ opt/yarn-v1.22.22/package.json                      │ node-pkg │        0        │    -    │
+└─────────────────────────────────────────────────────┴──────────┴─────────────────┴─────────┘
 Legend:
 - '-': Not scanned
 - '0': Clean (no security findings detected)
 
 
-ai-healthcare/ai-service:0.1.0-dev (debian 12.15)
-=================================================
+ai-healthcare/alert-logger:0.1.0-dev (debian 12.15)
+===================================================
 Total: 56 (HIGH: 52, CRITICAL: 4)
 
 ┌──────────────────┬────────────────┬──────────┬──────────────┬────────────────────┬───────────────┬──────────────────────────────────────────────────────────────┐

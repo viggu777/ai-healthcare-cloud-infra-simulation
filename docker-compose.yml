@@ -251,6 +251,29 @@ services:
       retries: 3
       start_period: 20s
 
+  # P1.4 — local alert-notification sink (15th service). Private-only, no
+  # published ports; deliveries land in ./monitoring/alert-notifications/ on
+  # the host via bind mount (the notification artifact). Same hardening as the
+  # other custom Node services (non-root, cap_drop, no-new-privileges).
+  alert-logger:
+    build: ./services/alert-logger
+    image: ai-healthcare/alert-logger:${APP_VERSION:-0.1.0}
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - private
+    volumes:
+      - ./monitoring/alert-notifications:/data:rw
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://localhost:9089/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   pushgateway:
     # Phase 4: pinned by digest (see gateway note). Receives pipeline/security
     # status pushes (scripts/pipeline.sh pushes via the api container, the only

@@ -13,7 +13,7 @@ Conventions: `D="docker compose --env-file environments/dev.env"`,
 cd /home/viggu/Documents/ai-healthcare-cloud-infra-simulation
 export DOCKER_CONFIG=/tmp/docker-nocreds   # host-cred-helper workaround, see docs/PHASE1-RESULTS.md
 $D up -d                                    # dev on :8080, incl. monitoring
-$D ps                                       # 14 services: 7 app + 7 observability
+$D ps                                       # 15 services: 7 app + 8 observability (incl. alert-logger, P1.4)
 ```
 
 ## 1. Normal operation (3 min)

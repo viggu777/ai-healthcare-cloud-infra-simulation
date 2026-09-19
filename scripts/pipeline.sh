@@ -178,7 +178,8 @@ else
   echo "  [lint-ok] gateway TLS cert present"
 fi
 for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
-         services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js; do
+         services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js \
+         services/alert-logger/server.js; do
   node --check "$f" || die "lint failed: $f"
   echo "  [lint-ok] $f"
 done
@@ -198,11 +199,11 @@ echo "(binding trivy gate runs after build, on the newly built tag — see below
 
 # ---- build ----
 set_stage "build (tag: $RUN_TAG)"
-APP_VERSION="$RUN_TAG" docker compose --env-file "$DEV_ENV" build api ai-service worker ehr-mock \
+APP_VERSION="$RUN_TAG" docker compose --env-file "$DEV_ENV" build api ai-service worker ehr-mock alert-logger \
   || die "image build failed"
 # Keep a human-stable semver alias next to the exact run tag.
 SEMVER_DEV="$(grep -E '^APP_VERSION=' "$DEV_ENV" | cut -d= -f2)"
-for svc in api ai-service worker ehr-mock; do
+for svc in api ai-service worker ehr-mock alert-logger; do
   docker tag "ai-healthcare/$svc:$RUN_TAG" "ai-healthcare/$svc:$SEMVER_DEV"
 done
 echo "built + dual-tagged (:$RUN_TAG exact, :$SEMVER_DEV alias):"

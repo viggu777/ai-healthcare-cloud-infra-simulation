@@ -1,18 +1,20 @@
-# Phase 4 — Alertmanager config (as code). Simulation-grade receiver: alerts are
-# evaluated and visible (Alertmanager API + Prometheus ALERTS metric + Grafana
-# panel). There is no mail/SMS in this free local stack, so notifications go to
-# a discard webhook — in a real cloud this receiver becomes PagerDuty/email/Slack.
+# P1.4 — Alertmanager config (as code). Simulation-grade receiver with a REAL
+# local sink: every firing AND resolved notification is POSTed to the
+# `alert-logger` service, which appends one JSON line per delivery to
+# ./monitoring/alert-notifications/alert-notifications.log on the host
+# (bind mount — the concrete artifact that "someone was told"). No mail/SMS in
+# this free local stack; in a real cloud this receiver becomes PagerDuty/email/Slack.
 global: {}
 
 route:
-  receiver: 'blackhole'
+  receiver: 'alert-log'
   group_by: ['alertname']
   group_wait: 10s
   group_interval: 1m
   repeat_interval: 1h
 
 receivers:
-  - name: 'blackhole'
+  - name: 'alert-log'
     webhook_configs:
-      - url: 'http://127.0.0.1:9/'
-        send_resolved: false
+      - url: 'http://alert-logger:9089/notify'
+        send_resolved: true
