@@ -76,6 +76,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      # NOTE: every job runs on a FRESH runner — artifacts from lint-and-unit
+      # (notably gateway/tls/, git-ignored by design) do not carry over.
+      # The gateway TLS mount must exist before compose touches it.
+      - name: ensure gateway TLS cert (git-ignored, per-runner)
+        run: bash scripts/gen-gateway-cert.sh
       - name: build + SHA-tag images
         run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env build api ai-service worker ehr-mock alert-logger
       - name: trivy gate on newly built images (binding)
@@ -89,7 +94,7 @@ jobs:
       - name: health gate dev + smoke + workload
         run: |
           for i in $(seq 1 36); do
-            if curl -fsS -m 5 http://localhost:8080/ready | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)"; then
+            if curl -fsS -m 5 http://localhost:8080/ready 2>/dev/null | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)" 2>/dev/null; then
               echo "dev READY"; break
             fi
             echo "waiting for dev /ready ($i/36)…"; sleep 5
@@ -114,7 +119,7 @@ jobs:
         if: success()
         run: |
           for i in $(seq 1 36); do
-            if curl -fsS -m 5 http://localhost:8081/ready | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)"; then
+            if curl -fsS -m 5 http://localhost:8081/ready 2>/dev/null | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)" 2>/dev/null; then
               echo "prod-like READY"; break
             fi
             echo "waiting for prod-like /ready ($i/36)…"; sleep 5
