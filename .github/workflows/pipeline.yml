@@ -6,12 +6,11 @@
 # gates, identical rollback semantics. Tags use github.sha so every running
 # container is traceable to exact source.
 #
-# Execution note (docs/CICD.md): the demonstrated artifact is scripts/pipeline.sh
-# run locally (this repo has no git remote and no runner minutes allocated).
-# This file is the drop-in CI definition for a connected clone: push/PR runs the
-# full pipeline against two ephemeral Compose projects on the runner
-# (ai-healthcare-dev on :8080, ai-healthcare-prodlike on :8081), exactly as the
-# local script does on the Ubuntu host.
+# Execution note (docs/CICD.md): BOTH artifacts are demonstrated. The local
+# scripts/pipeline.sh runs are logged in docs/pipeline-evidence/, and this
+# workflow is green on a connected clone (private repo, push to main —
+# P1.7, run linked in docs/CICD.md §1). It runs the full pipeline against two
+# ephemeral Compose projects on the runner (dev on :8080, prod-like on :8081).
 name: pipeline
 
 on:
