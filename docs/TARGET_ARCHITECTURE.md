@@ -2,7 +2,7 @@
 
 **Document type:** High-level target architecture (full project lifecycle, Phases 1–4)
 **Primary source of truth:** `Project_Requirements_v2.0.pdf` ("Secure, Reliable & Scalable Cloud Infrastructure Simulation for an AI Healthcare Platform")
-**Current implementation state referenced:** `PHASE1-RESULTS.md`, `PHASES.md`
+**Current implementation state referenced:** `PHASE1-RESULTS.md`, `docs/DEMO.md`, `docs/SECURITY.md`, `docs/CICD.md`, `docs/INCIDENTS.md` (`docs/PHASES.md` was removed during docs consolidation — phase scope now lives in §15 of this document)
 **Audience:** Implementation agent ("OpenCode") and reviewers
 **Status:** Phases 1–4 complete (Node.js 22 + Express running; hardening, pipeline, and observability/resilience proven — see `docs/SECURITY.md`, `docs/CICD.md`, `docs/INCIDENTS.md`, `docs/RESILIENCE.md`, `docs/SPOF.md`, `docs/DEMO.md`)
 
@@ -53,12 +53,12 @@ flowchart TB
     end
 
     subgraph HOST["UBUNTU HOST — Docker Compose"]
-        subgraph PUBNET["public network (only gateway attached)"]
-            NGINX["Nginx Gateway<br/>:8080 dev / :8081 prod-like<br/>ONLY published port"]
-        end
+    subgraph PUBNET["public network (gateway + documented dual-homed bridges)"]
+        NGINX["Nginx Gateway<br/>:8080 dev / :8081 prod-like<br/>SOLE published host port"]
+    end
 
-        subgraph PRIVNET["private network (internal: true — no internet route)"]
-            API["API Service<br/>Node.js/Express<br/>/health /ready /metrics"]
+    subgraph PRIVNET["private network (internal: true — no internet route)"]
+        API["API Service<br/>Node.js/Express<br/>/health /ready /metrics<br/>(dual-homed: public+private, no published port)"]
             AI["AI/Agent Service (mock)<br/>Node.js/Express"]
             WORKER["Worker<br/>Node.js<br/>(scalable, N replicas)"]
             REDIS[("Redis 7<br/>Queue")]
@@ -108,7 +108,7 @@ flowchart TB
     style DEVOPS fill:#2d2a1a,stroke:#d4ac0d
 ```
 
-**Reading the diagram:** the red boundary is the only network segment with a published host port. Everything green is on Docker's `internal: true` network — it has no route to the internet and is unreachable except from other containers on that network. The gateway is the sole bridge between red and green. Observability and CI/CD are drawn as separate control planes that reach into the host to scrape metrics or perform deploys/health checks, never to serve public traffic directly.
+**Reading the diagram:** the gateway holds the only host-published port. Everything green is on Docker's `internal: true` network — it has no route to the internet and is unreachable except from other containers on that network. Three services are dual-homed on both networks as documented bridges, not violations: `api` and `grafana`/`nginx-exporter` must touch `public` because a container attached *only* to an `internal: true` network cannot publish a host port at all (Docker silently drops the binding — verified) and a private-only exporter cannot resolve the public-only gateway; none of them publishes a port except the localhost-bound Grafana admin port (see §14). Observability and CI/CD are drawn as separate control planes that reach into the host to scrape metrics or perform deploys/health checks, never to serve public traffic directly.
 
 ---
 
@@ -117,33 +117,33 @@ flowchart TB
 ### Nginx Gateway
 - **Responsibility:** Sole public ingress; reverse proxy to API; rate limiting; TLS termination point (self-signed/local cert acceptable in simulation); hides internal topology.
 - **Technology:** Nginx (official image), config as code in repo.
-- **Network visibility:** Attached to both `public` and `internal` networks; only service with a published host port (8080 dev / 8081 prod-like).
-- **Inputs/outputs:** In: client HTTP(S). Out: proxied requests to `api:3000` on the internal network only.
+- **Network visibility:** Attached to the `public` network only (public-only is the tighter posture — the gateway reaches the API over the shared `public` bridge, not via the internal network); sole holder of a host-published port (8080 dev / 8081 prod-like).
+- **Inputs/outputs:** In: client HTTP(S). Out: proxied requests to `api:8000` over the `public` bridge.
 - **Dependencies:** API service healthy (upstream).
-- **Health checks:** `GET /nginx-health` (static) plus upstream health via `proxy` error handling.
-- **Failure behavior:** Returns 502/503 if API is unreachable; does not crash the whole stack; restart policy `on-failure`.
+- **Health checks:** No `/nginx-health` endpoint exists — liveness is the `/health` proxy to the API plus `GET /nginx_status` (`stub_status`, allow-listed to loopback/RFC1918 for the exporter); upstream failure surfaces via `proxy` 502/503 handling.
+- **Failure behavior:** Returns 502/503 if API is unreachable; does not crash the whole stack; `restart: unless-stopped` (P0.2, all services).
 
 ### API Service (Node.js/Express)
-- **Responsibility:** Public-facing "Patient/API service" per PDF §3; accepts appointment/job creation and listing; exposes `/health` (liveness), `/ready` (DB+queue dependency check), `/metrics` (Prometheus format); enqueues jobs; calls AI service for simulated agent interaction.
-- **Technology:** Node.js 22 + Express; MongoDB driver (`mongodb` 6.21.0); `ioredis` client (metrics are JSON via `/metrics`).
-- **Network visibility:** Internal network only; reached exclusively via the gateway.
+- **Responsibility:** Public-facing "Patient/API service" per PDF §3; accepts appointment/job creation and listing; exposes `/health` (liveness), `/ready` (DB+queue dependency check, always HTTP 200 with `{ready:true|false}` — a failed dependency reads as `ready:false`, never a 503), `/metrics` (JSON) and `/metrics/prom` (Prometheus text); enqueues jobs; calls AI service for simulated agent interaction.
+- **Technology:** Node.js 22 + Express; MongoDB driver (`mongodb` 6.21.0); `ioredis` client; `/metrics` returns JSON, Prometheus text exposition is at `/metrics/prom` (hand-rolled, no `prom-client` dependency).
+- **Network visibility:** Dual-homed on `public` + `private` (required — see §4/§14); publishes **no** host port, so it is unreachable from outside except through the gateway proxy. The unpublished port, not single-network attachment, is the real isolation guarantee.
 - **Inputs/outputs:** In: HTTP from Nginx. Out: MongoDB reads/writes, Redis enqueue, internal HTTP to AI service.
 - **Dependencies:** MongoDB, Redis, AI service (soft dependency — degrades, does not hard-fail on AI outage).
 - **Health checks:** `/health` = process up; `/ready` = Mongo ping + Redis ping both succeed.
-- **Failure behavior:** If Mongo/Redis unreachable, `/ready` returns 503 (removes from rotation conceptually); API stays up for liveness so orchestrator doesn't restart-loop it; requests fail fast with 503 rather than hanging.
+- **Failure behavior:** If Mongo/Redis unreachable, `/ready` returns HTTP 200 with `{ready:false}` (conceptually "remove from rotation"; the pipeline health gate parses the `ready` field, so the reword — not a 503 — is the load-bearing contract); API stays up for liveness so orchestrator doesn't restart-loop it; requests fail fast with 503 rather than hanging.
 
 ### AI/Agent Service (mock, Node.js/Express)
 - **Responsibility:** Simulated internal AI service called by the API; demonstrates secret handling (mock "API key" pulled from environment/secret store, never logged) and service isolation.
 - **Technology:** Node.js/Express, no external calls (fully mocked responses, optionally simulated latency).
 - **Network visibility:** Internal network only; never exposed via gateway routes intended for the public API surface (may be reachable through gateway only on an explicit internal-debug path if needed, otherwise not routed at all).
-- **Inputs/outputs:** In: internal HTTP from API/worker. Out: mock structured response.
+- **Inputs/outputs:** In: internal HTTP from the API (`POST /ai/query` → `/infer`). Out: mock structured response.
 - **Dependencies:** None (stateless mock).
 - **Health checks:** `/health`.
 - **Failure behavior:** API treats AI failures as non-fatal (timeout + fallback response), logged and counted as a metric.
 
 ### Worker Service (Node.js)
 - **Responsibility:** Background/async processing (PDF §3 "Background Worker"): dequeues jobs from Redis, simulates appointment processing/notifications/EHR sync, writes results to MongoDB, retries on transient failure.
-- **Technology:** Node.js consumer process (e.g., BullMQ on Redis, or a lightweight custom queue consumer); horizontally scalable via `--scale worker=N` (Compose) / replica count (Terraform-described).
+- **Technology:** Node.js consumer process (custom `BLPOP` loop in `services/worker/worker.js`, no BullMQ); horizontally scalable via `--scale worker=N` (Compose).
 - **Network visibility:** Internal network only; no inbound public exposure at all.
 - **Inputs/outputs:** In: jobs from Redis. Out: writes to MongoDB, outbound calls to Mock EHR.
 - **Dependencies:** Redis (hard), MongoDB (hard), Mock EHR (soft — retried, not fatal to the worker process).
@@ -157,7 +157,7 @@ flowchart TB
 - **Inputs/outputs:** In: enqueue from API. Out: dequeue by worker(s).
 - **Dependencies:** None.
 - **Health checks:** `redis-cli ping` container healthcheck; exporter for Prometheus (`queue depth`, `ops/sec`).
-- **Failure behavior:** If Redis is down, API `/ready` fails (fast 503) and enqueue attempts fail loudly rather than silently dropping jobs; worker `/health` reports degraded.
+- **Failure behavior:** If Redis is down, API `/ready` reports `{ready:false}` (HTTP 200, fail-fast signal for the pipeline health gate) and enqueue attempts fail loudly rather than silently dropping jobs; worker `/health` always reports `status: ok` (liveness only — it has no degraded state).
 
 ### MongoDB
 - **Responsibility:** Private application datastore representing hospitals/doctors/patients/appointments/workflow state (PDF §3 "Database" — see §13 for the relational-vs-document deviation).
@@ -198,8 +198,7 @@ flowchart TB
 ## 4. Network Architecture
 
 **Public network** (`public`, Docker bridge network, Nginx published to host):
-- Contains only the Nginx gateway.
-- Host port published: **8080** (dev), **8081** (prod-like). This is the only host-published port in the entire system.
+- The gateway holds the **sole host-published port** in the system: **8080** (dev), **8081** (prod-like). Three further services are attached here as documented dual-homed bridges (also on `private`): `api` (no published port — its attachment is what makes the gateway→API proxy path resolvable), `grafana` (localhost-bound admin port only, `127.0.0.1:3000/3001`), and `nginx-exporter` (no published port — must resolve the public-only gateway for `stub_status`). See §14 for why `internal: true` forces this shape.
 
 **Private/internal network** (`internal`, Docker network with `internal: true` — no default route to the internet):
 - Contains: API, AI service, Worker, Redis, MongoDB, Mock EHR, Prometheus, Grafana, exporters.
@@ -217,7 +216,7 @@ flowchart TB
 
 **Never publicly exposed:** MongoDB, Redis, the AI service, the Worker, the Mock EHR, Prometheus, and Grafana (Grafana only via an admin-restricted path, not the client-facing route). This directly satisfies PDF §8 ("only components that genuinely require internet-facing access should be exposed publicly") and §11 ("public exposure of private resources" as a flagged risk).
 
-**Gateway routing:** Nginx exposes only API routes (`/api/*`, `/health`, `/ready`, `/metrics` if intentionally public for the demo, otherwise metrics kept admin-only). It does not proxy to the AI service, worker, DB, queue, or EHR mock under any path.
+**Gateway routing (actual `gateway/nginx.conf`):** `GET /health` → proxied to `api:8000/health`; `GET /nginx_status` → Nginx `stub_status`, restricted to loopback/RFC1918 (exporter-only, not a health endpoint); catch-all `/` → proxied to the `api` upstream (so `/ready`, `/metrics`, `/metrics/prom`, `/appointments`, `/ai/query`, `/ehr/*` all resolve through the gateway with no `/api/*` prefix — there is no prefix route and no `/nginx-health` endpoint).
 
 **Simulated external EHR boundary:** the Mock EHR container is physically on the internal network (simulation constraint) but is architecturally treated as if it sits across a trust boundary — the worker talks to it the same way it would talk to a real external system (timeouts, retries, circuit-breaking, no shared credentials with internal services), and this deviation is called out explicitly rather than implied.
 
@@ -226,9 +225,9 @@ flowchart TB
 ## 5. Data / Message Flow
 
 1. **Normal API request:** Client → Nginx (rate-limited, TLS-terminated) → API → Mongo (read) → response back through Nginx to client.
-2. **Appointment/job creation:** Client → Nginx → API validates payload → API writes an initial record to Mongo (status `pending`) → API pushes a job onto the Redis queue → API returns `202 Accepted` with the job/appointment id immediately (does not block on processing).
+2. **Appointment/job creation:** Client → Nginx → API validates payload → API writes an initial record to Mongo (status `pending`) → API pushes a job onto the Redis queue → API returns HTTP 200 with the job/appointment id immediately (creation-acknowledged, not 202 — verified live; the async contract is the `queued` status, not the status code).
 3. **Queue processing:** Worker polls/consumes Redis → picks up job → marks record `processing` in Mongo.
-4. **Worker processing / AI interaction:** Worker may call the AI service for a simulated decision/enrichment step (e.g., "suggest scheduling slot") → non-fatal on failure, logged and retried a bounded number of times.
+4. **Worker processing:** Worker processes the job and syncs to the EHR (step 5) — the worker makes **no** AI-service call (`worker.js` has no AI client and exposes no AI-failure counter). The only AI interaction in the system is API → AI-service via `POST /ai/query` (mock triage), where AI failures are non-fatal (timeout + fallback response, logged).
 5. **EHR interaction:** Worker calls Mock EHR to simulate sync → on success, marks record `completed`; on slow/timeout, worker respects a request timeout and retries with backoff; on 5xx, retried as transient; on 401, treated as non-retryable (marks `failed_auth`, alertable); on "unavailable," circuit-breaks after N consecutive failures to avoid hammering a down dependency.
 6. **Retry/failure flow:** Failed jobs are retried with exponential backoff up to a max attempt count; after exhausting retries, the job is marked `failed` in Mongo and (conceptually) moved to a dead-letter list in Redis for operator inspection — nothing is silently dropped.
 7. **Worker failure and recovery:** If the worker process is killed/stopped, in-flight and queued jobs simply remain in Redis (not lost, not acknowledged) — this is the exact behavior already validated in Phase 1 (`PHASE1-RESULTS.md`: queue stuck at 10 while stopped, drained to 0 on restart). An unexpected worker-process death (crash/OOM — verified P0.2 via host-PID `kill -9`: container restarted in <1 s, `RestartCount` 1, backlog drained with no manual step) is revived automatically by the `restart: unless-stopped` policy on every service; an explicit `docker stop/kill` stays stopped by design (it is the management hold-down used to make the INC-01 detection window observable).
@@ -240,7 +239,7 @@ flowchart TB
 
 Mapped directly to PDF §9–§11.
 
-- **Secrets:** `.env` files (git-ignored) for local simulation, one per environment (`dev`, `prod-like`); never committed; never baked into images; never logged. Gitleaks (Phase 2) scans the repo and CI diff for accidental commits. In a real-cloud evolution this maps to a managed secret store (e.g., Vault/SSM) — noted as a future step, not built.
+- **Secrets:** `environments/dev.env` + `prod.env` are committed with **placeholder-only** values (accepted R4 — Gitleaks-clean; inject real secrets via host env/secret store before any shared use); root `.env` / `*.local` are git-ignored and never committed; nothing secret is baked into images or logged. Gitleaks (Phase 2) scans the repo and CI diff in git mode (P0.1). In a real-cloud evolution this maps to a managed secret store (e.g., Vault/SSM) — noted as a future step, not built.
 - **Environment configuration:** Environment-specific values (`MONGODB_URI`, `REDIS_URL`, ports, resource limits) live in per-environment env files / Compose overrides, not duplicated infrastructure definitions (satisfies PDF §7).
 - **Non-root containers:** All custom images (API, AI, worker, EHR mock) run as a non-root `USER node` (or equivalent) in the final image layer; verified by a Phase 2 audit step.
 - **Least privilege:** Each service only has the network reachability and credentials it needs — e.g., the AI mock has no DB credentials at all; the worker has DB + Redis + EHR reachability but no direct public exposure; CI/CD credentials are scoped to build/deploy only, not to production data access.
@@ -283,10 +282,10 @@ Stages map directly to PDF §12–§13: validation → testing → security chec
 
 | Signal | Source | Collected by | Shown in |
 |---|---|---|---|
-| Application logs | API, worker, AI, EHR mock (stdout, JSON structured) | Docker logging driver (Phase 1–3); optional Loki (Phase 4, optional per PHASES.md) | `docker compose logs`, optionally Grafana/Loki panel |
+| Application logs | API, worker, AI, EHR mock (stdout, JSON structured) | Docker logging driver | `docker compose logs` (centralized log archival such as Loki is future P2 work — no Loki ships in this stack) |
 | Infra/container logs | Docker daemon, container events | Docker logging driver | `docker compose logs` |
-| Metrics | `prom-client` in API/worker, Nginx stub_status, Redis/Mongo exporters | Prometheus scrape | Grafana |
-| Queue depth | Redis exporter | Prometheus | Grafana panel + alert |
+| Metrics | Hand-rolled text exposition in API/worker (`/metrics/prom`; no `prom-client` dependency), Nginx stub_status, Redis/Mongo exporters | Prometheus scrape | Grafana |
+| Queue depth | `api_queue_depth` gauge computed by the API (Redis exporter contributes ops/sec, not depth) | Prometheus | Grafana panel + alert |
 | API health | `/health`, `/ready` | Prometheus `up{}` + custom probe | Grafana panel + alert |
 | Worker health | `/health`, active-consumer metric | Prometheus | Grafana panel + alert |
 | Database health | Mongo exporter, `/ready` composite | Prometheus | Grafana panel + alert |
@@ -326,13 +325,13 @@ This satisfies PDF §16 (logging, metrics, health checks, operational dashboard)
 
 | Aspect | Development | Production-like |
 |---|---|---|
-| Compose file | Base `docker-compose.yml` + `docker-compose.dev.yml` override | Base `docker-compose.yml` + `docker-compose.prod.yml` override |
+| Compose file | Single `docker-compose.yml` (no per-env override files) | Same base file |
 | Host port | 8080 | 8081 |
-| Env file | `.env.dev` | `.env.prod` |
+| Env file | `environments/dev.env` | `environments/prod.env` |
 | Credentials | Dev-only Mongo/Redis creds | Separate prod-like creds (still local/simulated, never shared with dev) |
 | Resource limits | Loose/none | Defined CPU/memory limits (cost-awareness demo, §14) |
 | Log verbosity | Verbose/debug | Info/warn |
-| Scale defaults | 1 replica each | 2+ replicas for api/worker |
+| Scale defaults | 1 replica each (scale via `--scale api=N --scale worker=N`) | 1 replica each (same flags; prod-like differs by env values + `WORKER_CONCURRENCY=4`, not replica count) |
 
 Both environments **share** the same base Compose service definitions, Dockerfiles, and application images — only environment-specific overrides and secrets differ, per PDF §7 ("without unnecessarily duplicating the entire infrastructure definition"). This is already the pattern validated in Phase 1.
 
@@ -345,12 +344,12 @@ Both environments **share** the same base Compose service definitions, Dockerfil
 | `docker-compose.yml` + env overrides | Primary runtime IaC for the simulation | Yes |
 | `Dockerfile` per service | Reproducible image builds, non-root, minimal base | Yes |
 | `db/mongo-init.js` | DB bootstrap/init as code | Yes |
-| `nginx/*.conf` | Gateway routing as code | Yes |
+| `gateway/nginx.conf` | Gateway routing as code | Yes |
 | `terraform/` (local/simulated modules) | Declarative description of the resource graph (networks, service definitions, environment variables as Terraform variables) — used to document and parameterize the "cloud-shaped" resources and to make the conceptual jump to real Terraform-on-a-real-cloud small, even though `docker compose` remains the actual local execution engine | Yes |
 | `.github/workflows/*.yml` | CI/CD pipeline definition | Yes |
 | `k6/*.js` | Load test scripts | Yes |
 | `monitoring/prometheus.yml`, `monitoring/grafana/*` | Observability config as code | Yes |
-| `.env.*` | **Not** committed (secrets); `.env.*.example` committed instead | Example only |
+| `.env.example` + `environments/*.env` | `.env.example` is the template; `environments/dev.env` + `prod.env` are committed with placeholder-only values (R4) | Yes (placeholders only) |
 
 Terraform's role here is explicitly scoped: it is not required to (and will not) provision real cloud resources. It is included because the PDF explicitly permits Terraform "where appropriate for IaC/simulation" and because expressing the environment/resource graph declaratively is valuable documentation and a straightforward on-ramp to a real deployment later — this is called out plainly rather than overstated.
 
@@ -391,11 +390,17 @@ This deviation is treated as a documented, reasoned engineering trade-off — no
 | **Phase 3 — DevSecOps pipeline + safe releases** | `pipeline.sh` + GitHub Actions: lint → unit → secret scan → build → Trivy gate → deploy dev → health gate → promote prod-like → rollback; SHA + semver tags; digest-pinned bases; demo of healthy rollout, security-blocked release, and rolled-back broken version | **Done** — evidence in `docs/CICD.md` + `docs/pipeline-evidence/` |
 | **Phase 4 — Observability, scaling, resilience, ops** | Prometheus + Grafana + Alertmanager + Pushgateway + 3 exporters, 9 alert rules, EHR-outcome telemetry, k6 normal/increased load with measured drain/scaling, two incident lifecycles (both documented), Mongo backup/restore drilled, SPOF/cost/audit docs, demo script | **Done** — `docs/INCIDENTS.md`, `docs/RESILIENCE.md`, `docs/SPOF.md`, `docs/DEMO.md`, `monitoring/`, `k6/` |
 
-**Explicitly out of scope in every phase** (per `PHASES.md` and PDF §26): frontend/UI of any kind, a real AI agent, telephony, real EHR integration, real patient data, real cloud deployment.
+**Explicitly out of scope in every phase** (per §15 below and PDF §26): frontend/UI of any kind, a real AI agent, telephony, real EHR integration, real patient data, real cloud deployment.
 
 ---
 
 ## 16. Implementation-Ready Component Tree
+
+> **Target shape, not a directory listing.** The tree below is the planned layout
+> the implementation converges toward; the "actual paths" note immediately after
+> it records where reality differs today (`environments/dev.env`+`prod.env`,
+> `gateway/nginx.conf`, flat `server.js`/`worker.js`). When tree and note
+> disagree, the note wins.
 
 ```
 repo-root/
@@ -482,8 +487,8 @@ the IaC-recreation requirement is met by versioned Compose (down/up proven).
 | PDF Requirement | Architectural Component | Implementation Approach | Phase | Notes/Risks |
 |---|---|---|---|---|
 | Controlled public entry point (§3, §4) | Nginx Gateway | Single published port, reverse proxy to API only | 1 | Done |
-| Public API access, private internals (§3, §4, §8) | Nginx + `public`/`internal` networks | `internal: true` network; only gateway on `public` | 1 | Done |
-| Background workers + queue (§3) | Worker + Redis | BullMQ/consumer pattern | 1 | Done |
+| Public API access, private internals (§3, §4, §8) | Nginx + `public`/`internal` networks | `internal: true` network; gateway holds the sole published port, `api`/`grafana`/`nginx-exporter` are documented dual-homed bridges (§4) | 1 | Done |
+| Background workers + queue (§3) | Worker + Redis | Custom `BLPOP` consumer loop in `services/worker/worker.js` (no BullMQ dependency) | 1 | Done |
 | Private database, not publicly accessible (§3, §8) | MongoDB, internal network only | No host port for Mongo, ever | 1 | Deviation: document (not relational), see §13 |
 | Relational DB (§3) | — (deviation) | MongoDB retained | 1 | **Explicit documented deviation** |
 | Simulated external EHR w/ multiple failure modes (§3) | Mock EHR service | Controllable response-mode switch | 1 | Done (ok/slow/error verified in Phase 1) |
@@ -492,8 +497,8 @@ the IaC-recreation requirement is met by versioned Compose (down/up proven).
 | Network segmentation, least exposure (§8) | Two Docker networks | Verified via direct-port-refused test | 1 | Done |
 | Least privilege / identity separation (§9) | Per-service env/creds, CI scoped credentials | Distinct dev/prod creds; CI has deploy-only scope | 1 (partial) / 2 | Full RBAC/IAM not applicable locally — documented as simulated |
 | Secrets never hard-coded (§9) | `.env.*` (git-ignored) + Gitleaks | Env files + secret scan gate | 1 (env) / 2 (scan) | Gate enforced in CI from Phase 2/3 |
-| Non-root containers, minimal images (§10) | All custom Dockerfiles | `USER node`, slim base images | 2 | Audit step required |
-| Vulnerability identification mechanism (§10, §11) | Trivy | CI stage + local `security-scan.sh` | 2 | At least one finding must be remediated |
+| Non-root containers, minimal images (§10) | All custom Dockerfiles | `USER node`, slim base images | 2 | Done — 4/4 `USER node`, verified at runtime (`docs/SECURITY.md` §2) |
+| Vulnerability identification mechanism (§10, §11) | Trivy | CI stage + local `security-scan.sh` | 2 | Done — F1–F5 remediated, app deps 0 findings, gate PASS 26/0 (`docs/SECURITY.md` §§2–3) |
 | Security validation actionable & integrated (§11, §12) | Gitleaks + Trivy + Compose lint, wired into CI | Pipeline stages, not manual-only | 2–3 | Must demonstrably block a bad build |
 | CI/CD with security gates (§12) | pipeline.sh + GitHub Actions pipeline | lint→test→secretscan→build→scan(gate)→deploy→healthgate→promote→rollback | 3 | **Done** — security block demonstrated (seeded fake key, `docs/CICD.md` §7) |
 | Versioned, health-verified, rollback-capable deployment (§13) | CI health gate + image tags | Deploy dev → verify `/ready` → promote → verify again → rollback on failure | 3 | **Done** — healthy rollout + unhealthy rollback demonstrated (`docs/CICD.md` §6, §8) |
@@ -520,7 +525,7 @@ Build to this architecture. Specifically:
 2. **Preserve all Phase 1 infrastructure decisions**: Docker Compose topology, `public`/`internal` network split with `internal: true`, only-gateway-publishes-a-port rule, MongoDB as the datastore (with `db/mongo-init.js` equivalent), Redis 7 as the queue, dev (8080) / prod-like (8081) environment split.
 3. **Use exactly the stack specified**: Node.js, Express, MongoDB, Redis, Docker, Docker Compose, Nginx, Ubuntu, Terraform (for documenting/parameterizing the resource graph only — Compose remains the actual runtime engine), GitHub Actions (or a documented `pipeline.sh` fallback), Prometheus, Grafana, Trivy, Gitleaks, k6. Free/open-source and free-tier only.
 4. **Do not add**: any frontend/UI (no React, no dashboard UI beyond Grafana), a real AI agent, real EHR integration, telephony, real patient data, or real cloud deployment. These are permanently out of scope per the PDF.
-5. **Implement phases in order** (§15): Phase 2 hardening/scanning before Phase 3 pipeline before Phase 4 observability/resilience/ops — each phase's acceptance criteria (from `PHASES.md`) must be met before moving on.
+5. **Implement phases in order** (§15): Phase 2 hardening/scanning before Phase 3 pipeline before Phase 4 observability/resilience/ops — each phase's acceptance criteria (§15 table) must be met before moving on.
 6. **Document, never hide, the MongoDB-vs-relational deviation** in the repo's architecture/security docs (§13 of this document is the canonical explanation — reuse or link to it, don't restate a different rationale).
 7. **Every security scan (Gitleaks, Trivy) must be wired into CI as a real gate**, not an informational-only step — at least one deliberate failure must be demonstrable (e.g., a seeded vulnerable dependency or a seeded fake secret in a test branch) that visibly blocks the pipeline, per PDF §12.
 8. **Every deployment must be health-gated**: no promotion from dev to prod-like without a passing `/ready` check through the gateway; a deliberately broken version must be shown to be blocked or rolled back while the previous healthy version keeps serving.

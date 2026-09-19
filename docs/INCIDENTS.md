@@ -102,7 +102,7 @@ jobs resumed exactly where they stopped.
 
 ### Prevention
 
-1. `restart: on-failure` stays (crash revival without humans).
+1. `restart: unless-stopped` on all services (P0.2 — crash revival without humans; explicit `stop` stays down for the detection window).
 2. WorkerDown (liveness) + QueueBacklog (symptom) alerts now cover detection —
    this incident is the proof they fire and resolve.
 3. Drain-rate headroom documented (`docs/RESILIENCE.md`): ~3 jobs/s per worker,

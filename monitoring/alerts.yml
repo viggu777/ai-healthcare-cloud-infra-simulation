@@ -42,7 +42,7 @@ groups:
         annotations:
           summary: "Worker is down (no successful scrape for 1m)"
           description: "No queue consumption: queue depth grows, appointments stay queued. Nothing is lost (jobs persist in Redis)."
-          runbook: "1) docker compose ps worker + logs worker. 2) Restart worker (restart policy is on-failure; manual: up -d worker). 3) Watch queue drain to 0. Full lifecycle: docs/INCIDENTS.md INC-01."
+          runbook: "1) docker compose ps worker + logs worker. 2) Crashed workers revive via restart: unless-stopped; if explicitly stopped, manual: up -d worker. 3) Watch queue drain to 0. Full lifecycle: docs/INCIDENTS.md INC-01."
 
       - alert: QueueBacklog
         expr: api_queue_depth > 15
