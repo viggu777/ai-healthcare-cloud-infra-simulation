@@ -18,6 +18,8 @@ git clone https://github.com/viggu777/ai-healthcare-cloud-infra-simulation.git
 cd ai-healthcare-cloud-infra-simulation
 bash scripts/gen-gateway-cert.sh   # gateway/tls/ is git-ignored by design; required before first up
 docker compose --env-file environments/dev.env up --build -d
+bash scripts/create-db-users.sh --env-file environments/dev.env   # fresh volumes only: syncs least-privilege DB users to env passwords (idempotent)
+docker compose --env-file environments/dev.env up -d api worker mongodb-exporter
 bash scripts/smoke.sh
 python3 scripts/workload.py http://localhost:8080 20
 docker compose --env-file environments/dev.env ps

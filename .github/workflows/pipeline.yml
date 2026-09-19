@@ -91,6 +91,10 @@ jobs:
           echo "PREV_PROD=$(docker compose --env-file environments/prod.env ps -q api 2>/dev/null | xargs -r docker inspect --format '{{.Config.Image}}' 2>/dev/null | cut -d: -f2 || true)" >> "$GITHUB_ENV"
       - name: deploy dev
         run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env up -d
+      - name: sync least-privilege DB users (fresh volumes carry init placeholders)
+        run: |
+          bash scripts/create-db-users.sh --env-file environments/dev.env
+          APP_VERSION="${{ github.sha }}" docker compose --env-file environments/dev.env up -d api worker mongodb-exporter
       - name: health gate dev + smoke + workload
         run: |
           for i in $(seq 1 36); do
@@ -115,6 +119,11 @@ jobs:
       - name: promote prod-like
         if: success()
         run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d
+      - name: sync prod-like DB users
+        if: success()
+        run: |
+          bash scripts/create-db-users.sh --env-file environments/prod.env
+          APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d api worker mongodb-exporter
       - name: post-promote health check
         if: success()
         run: |

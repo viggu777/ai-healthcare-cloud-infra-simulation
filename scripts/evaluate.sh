@@ -78,6 +78,14 @@ fi
 
 # 6. up + wait for /ready (36 x 5s, same budget as CI)
 docker compose --env-file "$ENV_FILE" up -d >/dev/null 2>&1
+# Fresh volumes carry init-placeholder DB passwords; sync least-privilege
+# users to this env (idempotent) and restart credential consumers.
+if bash scripts/create-db-users.sh --env-file "$ENV_FILE" >/dev/null 2>&1; then
+  pass "db-users" "least-privilege users synced"
+  docker compose --env-file "$ENV_FILE" up -d api worker mongodb-exporter >/dev/null 2>&1 || true
+else
+  fail "db-users" "create-db-users.sh failed"
+fi
 READY=0
 for i in $(seq 1 36); do
   if curl -fsS -m 5 "$GW/ready" 2>/dev/null | python3 -c "import json,sys; sys.exit(0 if json.load(sys.stdin).get('ready') is True else 1)" 2>/dev/null; then

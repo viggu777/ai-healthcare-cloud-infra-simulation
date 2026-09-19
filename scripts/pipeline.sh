@@ -246,6 +246,11 @@ DEPLOYING_ENV_FILE="$DEV_ENV"
 DEPLOYING_PREV_TAG="$(current_tag "$DEV_ENV" api)"
 echo "previous dev tag: '${DEPLOYING_PREV_TAG:-<none>}'"
 APP_VERSION="$RUN_TAG" docker compose --env-file "$DEV_ENV" up -d || die "dev deploy failed"
+# Fresh volumes get placeholder DB passwords from db/mongo-init.js; sync
+# least-privilege users to this env's passwords (idempotent — no-op when
+# users already exist) and restart consumers of those creds.
+bash scripts/create-db-users.sh --env-file "$DEV_ENV" || die "dev db-users failed"
+APP_VERSION="$RUN_TAG" docker compose --env-file "$DEV_ENV" up -d api worker mongodb-exporter || die "dev creds restart failed"
 
 # ---- health gate dev ----
 set_stage "health gate dev"
@@ -267,6 +272,9 @@ DEPLOYING_PREV_TAG="$(current_tag "$PROD_ENV" api)"
 echo "previous prod-like tag: '${DEPLOYING_PREV_TAG:-<none>}'"
 # shellcheck disable=SC2086
 APP_VERSION="$RUN_TAG" docker compose --env-file "$PROD_ENV" $PROD_FILES up -d || die "prod-like deploy failed"
+bash scripts/create-db-users.sh --env-file "$PROD_ENV" || die "prod-like db-users failed"
+# shellcheck disable=SC2086
+APP_VERSION="$RUN_TAG" docker compose --env-file "$PROD_ENV" $PROD_FILES up -d api worker mongodb-exporter || die "prod-like creds restart failed"
 
 # ---- post-promote check ----
 set_stage "post-promote health check"
