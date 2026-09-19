@@ -176,8 +176,11 @@ curl "http://localhost:8080/ehr/status?mode=ok"
    (`monitoring/alerts.yml` EHROutage annotation).
 2. Outcome-mix panel is permanent — the only sensor that sees logical
    dependency failure behind healthy containers.
-3. Future hardening (not built): circuit-breaker after N consecutive non-ok to
-   spare a struggling dependency; dead-letter surfacing for `failed_auth`.
+3. Hardening built (P1.2, verified above in spirit — breaker engaged on the
+   `unavailable` replay, `failed_auth` proven on the `auth_fail` replay):
+   circuit-breaker opens after 5 consecutive retryable EHR failures (15 s
+   cooldown, half-open probe), EHR calls retry at most 3× with 1 s/2 s
+   backoff, and 401 lands in terminal `failed_auth` with no retry loop.
 
 ---
 

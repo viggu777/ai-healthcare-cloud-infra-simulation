@@ -131,6 +131,12 @@ services:
       EHR_URL: http://ehr-mock:8002
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
       WORKER_FAIL_MODE: ${WORKER_FAIL_MODE:-off}
+      # P1.2 resilience dials (code defaults match; env makes them explicit).
+      EHR_MAX_ATTEMPTS: ${EHR_MAX_ATTEMPTS:-3}
+      EHR_BACKOFF_BASE_MS: ${EHR_BACKOFF_BASE_MS:-1000}
+      EHR_BACKOFF_MAX_MS: ${EHR_BACKOFF_MAX_MS:-8000}
+      BREAKER_THRESHOLD: ${BREAKER_THRESHOLD:-5}
+      BREAKER_COOLDOWN_MS: ${BREAKER_COOLDOWN_MS:-15000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     healthcheck:
       test: ["CMD-SHELL", "node -e \"fetch('http://localhost:8003/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))\""]

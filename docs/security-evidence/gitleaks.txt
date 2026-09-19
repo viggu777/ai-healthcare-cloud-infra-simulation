@@ -5,6 +5,6 @@
     ○ ░
     ░    gitleaks
 
-[90m1:55PM[0m [32mINF[0m [1m6 commits scanned.[0m
-[90m1:55PM[0m [32mINF[0m [1mscanned ~1107039 bytes (1.11 MB) in 722ms[0m
-[90m1:55PM[0m [32mINF[0m [1mno leaks found[0m
+[90m2:00PM[0m [32mINF[0m [1m7 commits scanned.[0m
+[90m2:00PM[0m [32mINF[0m [1mscanned ~1116295 bytes (1.12 MB) in 811ms[0m
+[90m2:00PM[0m [32mINF[0m [1mno leaks found[0m

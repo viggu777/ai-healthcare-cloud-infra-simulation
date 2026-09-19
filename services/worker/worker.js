@@ -1,8 +1,12 @@
 /* Background worker — consumes Redis queue, updates MongoDB, calls EHR mock.
  * Observable: queue depth, processing latency, failed jobs, retries, restarts.
  * Fail modes via WORKER_FAIL_MODE: off|slow|error|crash
- * Node.js port of worker.py. Same job document shapes, retry policy
- * (retry while attempts<3, else jobs:dead list) and /health contract on :8003.
+ * P1.2 resilience: EHR calls run bounded retries with exponential backoff
+ * (EHR_MAX_ATTEMPTS/EHR_BACKOFF_BASE_MS/EHR_BACKOFF_MAX_MS) behind a
+ * consecutive-failure circuit breaker (BREAKER_THRESHOLD/BREAKER_COOLDOWN_MS);
+ * EHR 401 lands in terminal `failed_auth` (never retried). Exception-path
+ * requeue also backs off (retry while attempts<3, else jobs:dead list).
+ * /health contract on :8003.
  */
 'use strict';
 
@@ -16,6 +20,12 @@ const REDIS_URL = process.env.REDIS_URL || 'redis://queue:6379/0';
 const EHR_URL = process.env.EHR_URL || 'http://ehr-mock:8002';
 const FAIL_MODE = process.env.WORKER_FAIL_MODE || 'off';
 const CONCURRENCY = parseInt(process.env.WORKER_CONCURRENCY || '2', 10);
+// P1.2 resilience dials (bounded retry with exponential backoff + circuit breaker).
+const EHR_MAX_ATTEMPTS = parseInt(process.env.EHR_MAX_ATTEMPTS || '3', 10);
+const EHR_BACKOFF_BASE_MS = parseInt(process.env.EHR_BACKOFF_BASE_MS || '1000', 10);
+const EHR_BACKOFF_MAX_MS = parseInt(process.env.EHR_BACKOFF_MAX_MS || '8000', 10);
+const BREAKER_THRESHOLD = parseInt(process.env.BREAKER_THRESHOLD || '5', 10);
+const BREAKER_COOLDOWN_MS = parseInt(process.env.BREAKER_COOLDOWN_MS || '15000', 10);
 const PORT = 8003;
 
 const redis = new Redis(REDIS_URL, { connectTimeout: 5000, maxRetriesPerRequest: null });
@@ -33,8 +43,19 @@ let deadTotal = 0; // Phase 4: jobs moved to jobs:dead after exhausting retries
 let latencyMsTotal = 0;
 // Phase 4: EHR call outcome mix as observed by the worker (drives the
 // Grafana "EHR outcome mix" panel + EHROutage alert).
-const ehrOutcomes = { ok: 0, error_5xx: 0, auth_401: 0, unavailable_503: 0, timeout: 0, other: 0 };
+const ehrOutcomes = { ok: 0, error_5xx: 0, auth_401: 0, unavailable_503: 0, timeout: 0, breaker_open: 0, other: 0 };
+// P1.2: consecutive-failure circuit breaker around the EHR dependency.
+// closed = calls flow; open = EHR skipped fast (jobs degrade without
+// hammering); half-open = one probe call after the cooldown decides.
+let breakerState = 'closed';
+let consecutiveFailures = 0;
+let breakerOpenedAt = 0;
+let breakerTripsTotal = 0;
 const startedAt = Date.now();
+
+// Bounded exponential backoff: base * 2^(attempt-1), capped at max.
+const backoffMs = (attempt /* 1-based */) =>
+  Math.min(EHR_BACKOFF_BASE_MS * (2 ** (attempt - 1)), EHR_BACKOFF_MAX_MS);
 
 function mdb() {
   return mongo.db(MONGO_DB);
@@ -63,6 +84,8 @@ const server = http.createServer(async (req, res) => {
       avg_latency_ms: processedTotal ? Math.round((latencyMsTotal / processedTotal) * 100) / 100 : 0,
       uptime_s: Math.round((Date.now() - startedAt) / 100) / 10,
       fail_mode: FAIL_MODE,
+      breaker_state: breakerState,
+      consecutive_ehr_failures: consecutiveFailures,
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(body);
@@ -101,6 +124,12 @@ const server = http.createServer(async (req, res) => {
       '# HELP worker_fail_mode_info Active WORKER_FAIL_MODE (label: mode). Always 1.',
       '# TYPE worker_fail_mode_info gauge',
       `worker_fail_mode_info{mode="${FAIL_MODE}"} 1`,
+      '# HELP worker_circuit_breaker_state EHR breaker: 0=closed 1=open 2=half-open.',
+      '# TYPE worker_circuit_breaker_state gauge',
+      `worker_circuit_breaker_state ${breakerState === 'closed' ? 0 : breakerState === 'open' ? 1 : 2}`,
+      '# HELP worker_circuit_breaker_trips_total Times the breaker opened.',
+      '# TYPE worker_circuit_breaker_trips_total counter',
+      `worker_circuit_breaker_trips_total ${breakerTripsTotal}`,
     ];
     res.writeHead(200, { 'Content-Type': 'text/plain; version=0.0.4' });
     res.end(`${lines.join('\n')}\n`);
@@ -124,26 +153,84 @@ async function processOne(item) {
     if (FAIL_MODE === 'slow') await sleep(4000);
     else if (FAIL_MODE === 'error') throw new Error('injected error');
     else await sleep(300); // normal work
-    // call EHR (timeout 3s, retryable) — record outcome but don't fail job on EHR 5xx
-    let ehrOk = false;
-    try {
-      const resp = await fetch(`${EHR_URL}/record/${apptId}`, { signal: AbortSignal.timeout(3000) });
-      if (resp.status === 200) ehrOutcomes.ok += 1;
-      else if (resp.status === 500) ehrOutcomes.error_5xx += 1;
-      else if (resp.status === 401) ehrOutcomes.auth_401 += 1;
-      else if (resp.status === 503) ehrOutcomes.unavailable_503 += 1;
-      else ehrOutcomes.other += 1;
-      ehrOk = resp.status === 200;
-    } catch (e) {
-      ehrOutcomes.timeout += 1;
-      console.warn(`EHR call failed for ${jobId}: ${e.message}`);
+    // P1.2: EHR call with bounded retry (exponential backoff) + circuit breaker.
+    // Outcomes: 'ok' | 'degraded' (retryables exhausted or breaker open) |
+    // 'failed_auth' (401 — non-retryable terminal, never requeued/retried).
+    let ehrResult = 'degraded';
+    if (breakerState === 'open') {
+      if (Date.now() - breakerOpenedAt >= BREAKER_COOLDOWN_MS) {
+        breakerState = 'half-open';
+        console.warn('[worker] circuit breaker half-open: probing EHR once');
+      } else {
+        ehrOutcomes.breaker_open += 1;
+      }
+    }
+    if (breakerState !== 'open') {
+      const probing = breakerState === 'half-open';
+      const maxTries = probing ? 1 : EHR_MAX_ATTEMPTS;
+      for (let attempt = 1; attempt <= maxTries; attempt += 1) {
+        let status = null;
+        try {
+          const resp = await fetch(`${EHR_URL}/record/${apptId}`, { signal: AbortSignal.timeout(3000) });
+          status = resp.status;
+        } catch (e) {
+          status = 'timeout';
+          console.warn(`EHR call failed for ${jobId} (attempt ${attempt}/${maxTries}): ${e.message}`);
+        }
+        if (status === 200) {
+          ehrOutcomes.ok += 1;
+          ehrResult = 'ok';
+          consecutiveFailures = 0;
+          if (probing) {
+            breakerState = 'closed';
+            console.warn('[worker] circuit breaker CLOSED (probe succeeded)');
+          }
+          break;
+        }
+        if (status === 401) {
+          // Non-retryable: bad credential/config. Terminal, no retry, no breaker count.
+          ehrOutcomes.auth_401 += 1;
+          ehrResult = 'failed_auth';
+          console.warn(`[worker] EHR 401 for ${jobId}: marking failed_auth (terminal, no retry)`);
+          break;
+        }
+        if (status === 500) ehrOutcomes.error_5xx += 1;
+        else if (status === 503) ehrOutcomes.unavailable_503 += 1;
+        else if (status !== 'timeout') ehrOutcomes.other += 1;
+        else ehrOutcomes.timeout += 1;
+        consecutiveFailures += 1;
+        if (probing || consecutiveFailures >= BREAKER_THRESHOLD) {
+          breakerState = 'open';
+          breakerOpenedAt = Date.now();
+          breakerTripsTotal += 1;
+          console.warn(`[worker] circuit breaker OPEN after ${consecutiveFailures} consecutive EHR failures (cooldown ${BREAKER_COOLDOWN_MS}ms)`);
+          break;
+        }
+        if (attempt < maxTries) {
+          const wait = backoffMs(attempt);
+          console.warn(`[worker] EHR ${status} for ${jobId}: retry ${attempt + 1}/${maxTries} after ${wait}ms backoff`);
+          await sleep(wait);
+        }
+      }
+    }
+    if (ehrResult === 'failed_auth') {
+      await db.collection('jobs').updateOne(
+        { _id: jobId }, { $set: { status: 'failed_auth', updatedAt: new Date() } },
+      );
+      await db.collection('appointments').updateOne(
+        { _id: apptId },
+        { $set: { status: 'failed_auth', updatedAt: new Date() } },
+      );
+      processedTotal += 1;
+      latencyMsTotal += Date.now() - t0;
+      return;
     }
     await db.collection('jobs').updateOne(
       { _id: jobId }, { $set: { status: 'done', updatedAt: new Date() } },
     );
     await db.collection('appointments').updateOne(
       { _id: apptId },
-      { $set: { status: ehrOk ? 'processed' : 'processed_ehr_degraded', updatedAt: new Date() } },
+      { $set: { status: ehrResult === 'ok' ? 'processed' : 'processed_ehr_degraded', updatedAt: new Date() } },
     );
     processedTotal += 1;
     latencyMsTotal += Date.now() - t0;
@@ -158,6 +245,10 @@ async function processOne(item) {
       const doc = await db.collection('jobs').findOne({ _id: jobId });
       const attempts = (doc && doc.attempts) || 1;
       if (attempts < 3) {
+        // P1.2: bounded exponential backoff before requeue (was immediate).
+        const wait = backoffMs(attempts);
+        console.warn(`[worker] job ${jobId} requeue ${attempts + 1}/3 after ${wait}ms backoff`);
+        await sleep(wait);
         await db.collection('jobs').updateOne(
           { _id: jobId }, { $set: { status: 'queued', updatedAt: new Date() } },
         );
