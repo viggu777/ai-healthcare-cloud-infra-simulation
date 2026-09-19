@@ -478,8 +478,11 @@ planned `scripts/security-scan.sh` + `backup/restore-mongo.sh` → all exist, pl
 `docs/INCIDENTS.md` + `docs/RESILIENCE.md` + `docs/SPOF.md` + `docs/DEMO.md` (Phase 4),
 `docs/pipeline-evidence/`, `docs/load-evidence/`; `monitoring/` (prometheus.yml,
 alerts.yml, alertmanager.yml, grafana provisioning + dashboard) and `k6/`
-(smoke.js, load.js) now exist as built. `terraform/` remains future work —
-the IaC-recreation requirement is met by versioned Compose (down/up proven).
+(smoke.js, load.js, burst.js) now exist as built, and `terraform/`
+(variables + 17-resource graph + dev/prod tfvars, P1.8 — validated with
+OpenTofu `validate`+`plan`, documentation-grade, Compose still executes).
+The IaC-recreation requirement is met by versioned Compose (down/up proven)
+with the Terraform graph mirroring it 1:1.
 
 ---
 

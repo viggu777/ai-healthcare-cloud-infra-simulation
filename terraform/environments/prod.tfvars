@@ -1,0 +1,16 @@
+# P1.8 — environment values mirroring environments/prod.env.
+project_name           = "ai-healthcare-prodlike"
+environment            = "prod-like"
+app_version            = "0.1.0"
+gateway_port           = 8081
+gateway_tls_port       = 8444
+grafana_port           = 3001
+mongo_user             = "app"
+mongo_password         = "prodlike_only_change_me"
+mongo_db               = "healthcare"
+ai_api_key             = "prodlike_ai_key_change_me"
+grafana_admin_password = "prodlike_only_change_me"
+worker_concurrency     = 4
+worker_fail_mode       = "off"
+ehr_mode               = "ok"
+log_level              = "info"
