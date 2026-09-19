@@ -82,7 +82,7 @@ docker compose --env-file "$ENV_FILE" up -d >/dev/null 2>&1
 # users to this env (idempotent) and restart credential consumers.
 if bash scripts/create-db-users.sh --env-file "$ENV_FILE" >/dev/null 2>&1; then
   pass "db-users" "least-privilege users synced"
-  docker compose --env-file "$ENV_FILE" up -d api worker mongodb-exporter >/dev/null 2>&1 || true
+  docker compose --env-file "$ENV_FILE" restart api worker mongodb-exporter >/dev/null 2>&1 || true
 else
   fail "db-users" "create-db-users.sh failed"
 fi

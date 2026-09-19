@@ -143,6 +143,9 @@ async function processOne(item) {
   const t0 = Date.now();
   const jobId = item.job_id;
   const apptId = item.appointment_id;
+  // Self-heal a closed topology (same boot-race as api /ready: DB users may
+  // have been synced after first boot). connect() is a no-op when healthy.
+  try { await mongo.connect(); } catch { /* per-op try/catch below reports */ }
   const db = mdb();
   try {
     await db.collection('jobs').updateOne(

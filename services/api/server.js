@@ -45,18 +45,34 @@ function hex12() {
   return crypto.randomBytes(6).toString('hex');
 }
 
+// DB liveness with one reconnect retry. The driver keeps a closed topology
+// after a failed boot-time connect (e.g. least-privilege users synced into
+// Mongo after this process first booted), so a failed ping retries one
+// explicit connect before reporting failure. Makes /ready self-healing
+// instead of sticky-false until container restart (CI health-gate root cause,
+// 2026-09-19: runner /ready permanently "Topology is closed").
+async function dbCheck() {
+  try {
+    await mongo.db('admin').command({ ping: 1 });
+    return 'ok';
+  } catch {
+    try {
+      await mongo.connect();
+      await mongo.db('admin').command({ ping: 1 });
+      return 'ok';
+    } catch (e) {
+      return `fail: ${e.message}`;
+    }
+  }
+}
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'api', version: APP_VERSION, db: 'mongodb' });
 });
 
 app.get('/ready', async (req, res) => {
   const checks = {};
-  try {
-    await mongo.db('admin').command({ ping: 1 });
-    checks.db = 'ok';
-  } catch (e) {
-    checks.db = `fail: ${e.message}`;
-  }
+  checks.db = await dbCheck();
   try {
     await redis.ping();
     checks.queue = 'ok';
@@ -100,8 +116,7 @@ app.get('/metrics/prom', async (req, res) => {
     qd = await redis.llen('jobs');
   } catch { /* leave -1 */ }
   try {
-    if (mongo) await mongo.db('admin').command({ ping: 1 });
-    dbReady = mongo ? 1 : 0;
+    if (mongo) dbReady = (await dbCheck()) === 'ok' ? 1 : 0;
   } catch {
     dbReady = 0;
   }
