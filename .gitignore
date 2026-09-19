@@ -24,6 +24,8 @@ backups/backup-*/
 gateway/tls/
 # Local alert-notification sink deliveries (P1.4 runtime artifact; .gitkeep stays)
 monitoring/alert-notifications/*.log
+# Scheduled-backup cron output (P1.5 runtime artifact)
+backups/backup-cron.log
 
 # Editor / OS
 .vscode/

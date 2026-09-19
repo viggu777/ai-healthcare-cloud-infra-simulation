@@ -307,7 +307,7 @@ This satisfies PDF §16 (logging, metrics, health checks, operational dashboard)
 | Unhealthy deployment | CI/CD health gate (§7) prevents promotion; previous healthy version keeps serving traffic. |
 | Failed deployment | Same gate — deploy halts before the unhealthy version reaches prod-like; rollback restores the last known-good image tag. |
 | Infrastructure recovery | `docker compose down && up` recreates all stateless services from IaC; stateful services (Mongo) recover from the named volume; a documented `terraform destroy/apply`-equivalent recreates the conceptual resource graph. |
-| Backup/recovery | `mongodump`/`mongorestore` scheduled/manual procedure against the Mongo volume; documented RPO/RTO expectations for the simulation (not enterprise-grade, explicitly scoped as such per PDF §19). |
+| Backup/recovery | `mongodump`/`mongorestore` on a host cron schedule (daily 03:17 via `scripts/install-backup-cron.sh`, log at `backups/backup-cron.log`) against the Mongo volume, with keep-5 retention in `backup-mongo.sh`; documented RPO/RTO expectations for the simulation (RPO ≈ 24 h, not enterprise-grade, explicitly scoped as such per PDF §19). |
 
 ---
 
