@@ -1,12 +1,12 @@
-2026-09-19T14:52:33Z	INFO	[vuln] Vulnerability scanning is enabled
-2026-09-19T14:52:33Z	INFO	[secret] Secret scanning is enabled
-2026-09-19T14:52:33Z	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
-2026-09-19T14:52:33Z	INFO	[secret] Please see https://trivy.dev/docs/v0.74/guide/scanner/secret#recommendation for faster secret detection
-2026-09-19T14:52:33Z	INFO	Detected OS	family="debian" version="12.15"
-2026-09-19T14:52:33Z	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=88
-2026-09-19T14:52:33Z	INFO	Number of language-specific files	num=1
-2026-09-19T14:52:33Z	INFO	[node-pkg] Detecting vulnerabilities...
-2026-09-19T14:52:33Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.74/guide/scanner/vulnerability#severity-selection for details.
+2026-09-19T14:57:17Z	INFO	[vuln] Vulnerability scanning is enabled
+2026-09-19T14:57:17Z	INFO	[secret] Secret scanning is enabled
+2026-09-19T14:57:17Z	INFO	[secret] If your scanning is slow, please try '--scanners vuln' to disable secret scanning
+2026-09-19T14:57:17Z	INFO	[secret] Please see https://trivy.dev/docs/v0.74/guide/scanner/secret#recommendation for faster secret detection
+2026-09-19T14:57:17Z	INFO	Detected OS	family="debian" version="12.15"
+2026-09-19T14:57:17Z	INFO	[debian] Detecting vulnerabilities...	os_version="12" pkg_num=88
+2026-09-19T14:57:17Z	INFO	Number of language-specific files	num=1
+2026-09-19T14:57:17Z	INFO	[node-pkg] Detecting vulnerabilities...
+2026-09-19T14:57:17Z	WARN	Using severities from other vendors for some vulnerabilities. Read https://trivy.dev/docs/v0.74/guide/scanner/vulnerability#severity-selection for details.
 
 Report Summary
 

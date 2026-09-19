@@ -92,3 +92,17 @@ Phase 2 only. No Phase 3 pipeline/rollback work started; database engine unchang
   pattern as `api`); Gitleaks `-v` self-contamination (Phase 3 fix retained).
 - No new secrets model: Grafana admin creds are placeholder env vars like the
   rest (R4); Gitleaks-clean including all new files and evidence logs.
+
+## 10. Remediation addendum (P0–P1, 2026-09-19)
+
+- Gate count grew **26 → 32 passed** when `alert-logger` (P1.4, 15th service)
+  joined all five per-service loops (non-root, minimal-image, `.dockerignore`,
+  Trivy report, runtime user). No check was removed or weakened; historical
+  26/0 references above describe the 4-service gate and remain accurate
+  for their date.
+- Gitleaks runs in **git mode** since P0.1 (was `--no-git` before git history
+  existed); clean, including `terraform/*.tfvars` placeholders (R4 posture)
+  and the git-ignored `gateway/tls/` keypair, which never enters history.
+- `compose-lint.py` unchanged and still passing (currently 74 pass / 0 fail /
+  4 warn, up from 70 with the 15th service; the 32/0 RESULT line counts
+  gates).

@@ -29,7 +29,7 @@ lint → unit → security-scan.sh (as-is) → build (run-tagged)
 | lint | `node --check` on all 7 service sources + `compose config -q` (dev + prod-like + prod resources override) | Yes — any failure stops the run |
 | unit | `node --test services/api/validate.test.js` (6 tests, zero deps) | Yes |
 | dependency audit | `npm audit --omit=dev --audit-level=high` per service (api, ai-service, worker, ehr-mock, alert-logger) | Yes — any HIGH/CRITICAL stops the run |
-| security | `bash scripts/security-scan.sh` (Gitleaks + Trivy report + compose-lint, 26/0) | Yes |
+| security | `bash scripts/security-scan.sh` (Gitleaks + Trivy report + compose-lint, 32/0 since P1.4 — 26/0 before alert-logger joined the gates) | Yes |
 | build | `APP_VERSION=<run-tag> compose build api ai-service worker ehr-mock` | Yes |
 | trivy gate | `bash scripts/trivy-gate.sh --tag <run-tag>` | **Yes — exit-code gate on app deps (see §3)** |
 | deploy dev | `APP_VERSION=<run-tag> compose --env-file environments/dev.env up -d` | Previous dev tag snapshotted first |

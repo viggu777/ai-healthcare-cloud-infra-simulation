@@ -48,7 +48,7 @@ $D down && $D up -d && sleep 20 && bash scripts/smoke.sh   # SMOKE OK
 ## 4. CI/CD + security gate (5 min)
 
 ```bash
-bash scripts/security-scan.sh     # PASS 26/0 (gitleaks + trivy + lint, one command)
+bash scripts/security-scan.sh     # PASS 32/0 (gitleaks + trivy + lint, one command; 26/0 pre-P1.4, +6 for alert-logger)
 bash scripts/trivy-gate.sh        # app-dep gate PASS; OS baseline reported, non-blocking
 ```
 
@@ -61,7 +61,7 @@ unless you follow the redaction/recovery notes in `docs/CICD.md` §7.
 
 ```bash
 bash scripts/pipeline.sh --tag demo-$USER --workload 10
-# lint → unit (6/6) → security 26/0 → trivy gate → build → deploy dev →
+# lint → unit (6/6) → npm audit (5/5) → security 32/0 → trivy gate → build → deploy dev →
 # health gate → smoke → workload → promote prod-like (:8081) → smoke → PASS
 GATEWAY_URL=http://localhost:8081 bash scripts/smoke.sh   # prod-like serves new tag
 ```
