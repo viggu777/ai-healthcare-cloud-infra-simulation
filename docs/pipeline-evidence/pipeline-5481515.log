@@ -1,0 +1,776 @@
+Phase 3 pipeline starting — run tag: 5481515
+log: docs/pipeline-evidence/pipeline-5481515.log
+
+===== [pipeline:5481515] STAGE: lint =====
+  [lint-ok] gateway TLS cert present
+  [lint-ok] services/api/server.js
+  [lint-ok] services/api/validate.js
+  [lint-ok] services/api/validate.test.js
+  [lint-ok] services/ai-service/server.js
+  [lint-ok] services/worker/worker.js
+  [lint-ok] services/ehr-mock/server.js
+  [lint-ok] services/alert-logger/server.js
+  [lint-ok] compose config dev + prod-like (+ prod resources override)
+
+===== [pipeline:5481515] STAGE: unit =====
+TAP version 13
+# Subtest: validateAppointment
+    # Subtest: accepts a valid patient+doctor payload
+    ok 1 - accepts a valid patient+doctor payload
+      ---
+      duration_ms: 2.569793
+      type: 'test'
+      ...
+    # Subtest: ignores extra fields
+    ok 2 - ignores extra fields
+      ---
+      duration_ms: 0.39252
+      type: 'test'
+      ...
+    # Subtest: rejects a missing patient
+    ok 3 - rejects a missing patient
+      ---
+      duration_ms: 0.497531
+      type: 'test'
+      ...
+    # Subtest: rejects a missing doctor
+    ok 4 - rejects a missing doctor
+      ---
+      duration_ms: 0.324991
+      type: 'test'
+      ...
+    # Subtest: rejects non-string types
+    ok 5 - rejects non-string types
+      ---
+      duration_ms: 0.337355
+      type: 'test'
+      ...
+    # Subtest: rejects empty / null / undefined bodies
+    ok 6 - rejects empty / null / undefined bodies
+      ---
+      duration_ms: 0.467664
+      type: 'test'
+      ...
+    1..6
+ok 1 - validateAppointment
+  ---
+  duration_ms: 6.900853
+  type: 'suite'
+  ...
+1..1
+# tests 6
+# suites 1
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 160.865873
+
+===== [pipeline:5481515] STAGE: dependency audit (npm audit --omit=dev) =====
+found 0 vulnerabilities
+  [audit-ok] api (0 HIGH/CRITICAL)
+found 0 vulnerabilities
+  [audit-ok] ai-service (0 HIGH/CRITICAL)
+found 0 vulnerabilities
+  [audit-ok] worker (0 HIGH/CRITICAL)
+found 0 vulnerabilities
+  [audit-ok] ehr-mock (0 HIGH/CRITICAL)
+found 0 vulnerabilities
+  [audit-ok] alert-logger (0 HIGH/CRITICAL)
+
+===== [pipeline:5481515] STAGE: security (security-scan.sh as-is) =====
+=== 1/6 non-root audit (Dockerfiles must set an unprivileged USER) ===
+  [PASS] api Dockerfile has unprivileged USER (USER node)
+  [PASS] ai-service Dockerfile has unprivileged USER (USER node)
+  [PASS] worker Dockerfile has unprivileged USER (USER node)
+  [PASS] ehr-mock Dockerfile has unprivileged USER (USER node)
+  [PASS] alert-logger Dockerfile has unprivileged USER (USER node)
+  [PASS] api runtime user=node
+  [PASS] ai-service runtime user=node
+  [PASS] worker runtime user=node
+  [PASS] ehr-mock runtime user=node
+  [PASS] alert-logger runtime user=node
+  NOTE: gateway (nginx:alpine) runs as root by upstream design (master binds :80). Documented in docs/SECURITY.md.
+
+=== 2/6 minimal-image audit ===
+  [PASS] api Dockerfile has no curl
+  [PASS] api base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] ai-service Dockerfile has no curl
+  [PASS] ai-service base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] worker Dockerfile has no curl
+  [PASS] worker base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] ehr-mock Dockerfile has no curl
+  [PASS] ehr-mock base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 AS build
+FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  [PASS] alert-logger Dockerfile has no curl
+  [PASS] alert-logger base image is pinned slim variant (FROM node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9)
+  Image sizes:
+ai-healthcare/alert-logger:434c7e7 327MB
+ai-healthcare/alert-logger:0.1.0-dev 327MB
+ai-healthcare/alert-logger:p12-test 327MB
+ai-healthcare/worker:p12-test 339MB
+ai-healthcare/worker:0.1.0-dev 339MB
+ai-healthcare/worker:434c7e7 339MB
+ai-healthcare/api:0.1.0-dev 345MB
+ai-healthcare/api:434c7e7 345MB
+ai-healthcare/api:p4-final-01 345MB
+ai-healthcare/worker:p4-final-01 339MB
+ai-healthcare/ehr-mock:0.1.0-dev 332MB
+ai-healthcare/ehr-mock:434c7e7 332MB
+ai-healthcare/ehr-mock:p4-final-01 332MB
+ai-healthcare/ai-service:0.1.0-dev 332MB
+ai-healthcare/ai-service:434c7e7 332MB
+ai-healthcare/ai-service:p4-final-01 332MB
+redis:7-alpine 57.8MB
+mongo:7-jammy 1.18GB
+nginx:alpine 93.1MB
+nginx/nginx-prometheus-exporter:1.4.2 19.5MB
+oliver006/redis_exporter:v1.68.0 14.3MB
+percona/mongodb_exporter:0.40.0 21MB
+
+=== 3/6 .dockerignore check ===
+  [PASS] api .dockerignore present
+  [PASS] ai-service .dockerignore present
+  [PASS] worker .dockerignore present
+  [PASS] ehr-mock .dockerignore present
+  [PASS] alert-logger .dockerignore present
+
+=== 4/6 Trivy image scans (severity: HIGH,CRITICAL) ===
+  -- ai-healthcare/api:0.1.0-dev -> docs/security-evidence/trivy-api.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for api (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/ai-service:0.1.0-dev -> docs/security-evidence/trivy-ai-service.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for ai-service (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/worker:0.1.0-dev -> docs/security-evidence/trivy-worker.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for worker (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/ehr-mock:0.1.0-dev -> docs/security-evidence/trivy-ehr-mock.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for ehr-mock (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  -- ai-healthcare/alert-logger:0.1.0-dev -> docs/security-evidence/trivy-alert-logger.txt
+     Total: 56 (HIGH: 52, CRITICAL: 4);
+  [PASS] trivy scan completed for alert-logger (Total: 56 (HIGH: 52, CRITICAL: 4);)
+  Full reports: docs/security-evidence/trivy-*.txt
+
+=== 5/6 Gitleaks secret scan (git mode when .git exists, else --no-git) ===
+  (git mode: .git present)
+  [PASS] gitleaks: no leaks found (see docs/security-evidence/gitleaks.txt)
+
+=== 6/6 Compose security lint ===
+services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 'ehr-mock', 'gateway', 'grafana', 'mongodb-exporter', 'nginx-exporter', 'prometheus', 'pushgateway', 'queue', 'redis-exporter', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO publicly reachable host ports
+[PASS] ai-service publishes NO publicly reachable host ports
+[PASS] worker publishes NO publicly reachable host ports
+[PASS] queue publishes NO publicly reachable host ports
+[PASS] db publishes NO publicly reachable host ports
+[PASS] ehr-mock publishes NO publicly reachable host ports
+[PASS] prometheus publishes NO publicly reachable host ports
+[PASS] alertmanager publishes NO publicly reachable host ports
+[PASS] alert-logger publishes NO publicly reachable host ports
+[PASS] pushgateway publishes NO publicly reachable host ports
+[PASS] grafana publishes NO publicly reachable host ports
+[WARN] grafana host-local admin port(s) ['127.0.0.1:${GRAFANA_PORT:-3000}:3000'] (documented exception, see docs/SECURITY.md)
+[PASS] redis-exporter publishes NO publicly reachable host ports
+[PASS] mongodb-exporter publishes NO publicly reachable host ports
+[PASS] nginx-exporter publishes NO publicly reachable host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] prometheus privileged!=true
+[PASS] prometheus no host network/pid mode
+[PASS] prometheus no extra cap_add (found [])
+[PASS] alertmanager privileged!=true
+[PASS] alertmanager no host network/pid mode
+[PASS] alertmanager no extra cap_add (found [])
+[PASS] alert-logger privileged!=true
+[PASS] alert-logger no host network/pid mode
+[PASS] alert-logger no extra cap_add (found [])
+[PASS] pushgateway privileged!=true
+[PASS] pushgateway no host network/pid mode
+[PASS] pushgateway no extra cap_add (found [])
+[PASS] grafana privileged!=true
+[PASS] grafana no host network/pid mode
+[PASS] grafana no extra cap_add (found [])
+[PASS] redis-exporter privileged!=true
+[PASS] redis-exporter no host network/pid mode
+[PASS] redis-exporter no extra cap_add (found [])
+[PASS] mongodb-exporter privileged!=true
+[PASS] mongodb-exporter no host network/pid mode
+[PASS] mongodb-exporter no extra cap_add (found [])
+[PASS] nginx-exporter privileged!=true
+[PASS] nginx-exporter no host network/pid mode
+[PASS] nginx-exporter no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 74 pass, 0 fail, 4 warn ----
+  [PASS] compose lint passed (see docs/security-evidence/compose-lint.txt)
+services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 'ehr-mock', 'gateway', 'grafana', 'mongodb-exporter', 'nginx-exporter', 'prometheus', 'pushgateway', 'queue', 'redis-exporter', 'worker']
+[PASS] gateway publishes host port (sole ingress, expected)
+[PASS] api publishes NO publicly reachable host ports
+[PASS] ai-service publishes NO publicly reachable host ports
+[PASS] worker publishes NO publicly reachable host ports
+[PASS] queue publishes NO publicly reachable host ports
+[PASS] db publishes NO publicly reachable host ports
+[PASS] ehr-mock publishes NO publicly reachable host ports
+[PASS] prometheus publishes NO publicly reachable host ports
+[PASS] alertmanager publishes NO publicly reachable host ports
+[PASS] alert-logger publishes NO publicly reachable host ports
+[PASS] pushgateway publishes NO publicly reachable host ports
+[PASS] grafana publishes NO publicly reachable host ports
+[WARN] grafana host-local admin port(s) ['127.0.0.1:${GRAFANA_PORT:-3000}:3000'] (documented exception, see docs/SECURITY.md)
+[PASS] redis-exporter publishes NO publicly reachable host ports
+[PASS] mongodb-exporter publishes NO publicly reachable host ports
+[PASS] nginx-exporter publishes NO publicly reachable host ports
+[PASS] private network has internal:true
+[PASS] db not attached to public net (['private'])
+[PASS] queue not attached to public net (['private'])
+[PASS] ai-service not attached to public net (['private'])
+[PASS] worker not attached to public net (['private'])
+[PASS] ehr-mock not attached to public net (['private'])
+[PASS] gateway privileged!=true
+[PASS] gateway no host network/pid mode
+[PASS] gateway no extra cap_add (found [])
+[PASS] api privileged!=true
+[PASS] api no host network/pid mode
+[PASS] api no extra cap_add (found [])
+[PASS] ai-service privileged!=true
+[PASS] ai-service no host network/pid mode
+[PASS] ai-service no extra cap_add (found [])
+[PASS] worker privileged!=true
+[PASS] worker no host network/pid mode
+[PASS] worker no extra cap_add (found [])
+[PASS] queue privileged!=true
+[PASS] queue no host network/pid mode
+[PASS] queue no extra cap_add (found [])
+[PASS] db privileged!=true
+[PASS] db no host network/pid mode
+[PASS] db no extra cap_add (found [])
+[PASS] ehr-mock privileged!=true
+[PASS] ehr-mock no host network/pid mode
+[PASS] ehr-mock no extra cap_add (found [])
+[PASS] prometheus privileged!=true
+[PASS] prometheus no host network/pid mode
+[PASS] prometheus no extra cap_add (found [])
+[PASS] alertmanager privileged!=true
+[PASS] alertmanager no host network/pid mode
+[PASS] alertmanager no extra cap_add (found [])
+[PASS] alert-logger privileged!=true
+[PASS] alert-logger no host network/pid mode
+[PASS] alert-logger no extra cap_add (found [])
+[PASS] pushgateway privileged!=true
+[PASS] pushgateway no host network/pid mode
+[PASS] pushgateway no extra cap_add (found [])
+[PASS] grafana privileged!=true
+[PASS] grafana no host network/pid mode
+[PASS] grafana no extra cap_add (found [])
+[PASS] redis-exporter privileged!=true
+[PASS] redis-exporter no host network/pid mode
+[PASS] redis-exporter no extra cap_add (found [])
+[PASS] mongodb-exporter privileged!=true
+[PASS] mongodb-exporter no host network/pid mode
+[PASS] mongodb-exporter no extra cap_add (found [])
+[PASS] nginx-exporter privileged!=true
+[PASS] nginx-exporter no host network/pid mode
+[PASS] nginx-exporter no extra cap_add (found [])
+[PASS] api has cap_drop ALL
+[PASS] api has no-new-privileges
+[PASS] ai-service has cap_drop ALL
+[PASS] ai-service has no-new-privileges
+[PASS] worker has cap_drop ALL
+[PASS] worker has no-new-privileges
+[PASS] ehr-mock has cap_drop ALL
+[PASS] ehr-mock has no-new-privileges
+[WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
+[WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
+---- summary: 74 pass, 0 fail, 4 warn ----
+
+===================================
+RESULT: 32 passed, 0 failed
+SECURITY SCAN: PASS
+
+===== [pipeline:5481515] STAGE: security (trivy app-dependency gate) =====
+(binding trivy gate runs after build, on the newly built tag — see below)
+
+===== [pipeline:5481515] STAGE: build (tag: 5481515) =====
+#1 [internal] load local bake definitions
+#1 reading from stdin 2.83kB done
+#1 DONE 0.0s
+
+#2 [ai-service internal] load build definition from Dockerfile
+#2 transferring dockerfile: 814B done
+#2 DONE 0.3s
+
+#3 [worker internal] load build definition from Dockerfile
+#3 transferring dockerfile: 814B done
+#3 DONE 0.3s
+
+#4 [ehr-mock internal] load build definition from Dockerfile
+#4 transferring dockerfile: 814B done
+#4 DONE 0.3s
+
+#5 [alert-logger internal] load build definition from Dockerfile
+#5 transferring dockerfile: 643B done
+#5 DONE 0.3s
+
+#6 [ai-service internal] load metadata for docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#6 ...
+
+#7 [api internal] load build definition from Dockerfile
+#7 transferring dockerfile: 826B done
+#7 DONE 0.4s
+
+#6 [alert-logger internal] load metadata for docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#6 DONE 0.2s
+
+#8 [ehr-mock internal] load .dockerignore
+#8 transferring context: 184B done
+#8 DONE 0.2s
+
+#9 [alert-logger internal] load .dockerignore
+#9 ...
+
+#10 [worker internal] load .dockerignore
+#10 transferring context: 184B done
+#10 DONE 0.2s
+
+#11 [ai-service internal] load .dockerignore
+#11 transferring context: 184B done
+#11 DONE 0.3s
+
+#9 [alert-logger internal] load .dockerignore
+#9 transferring context: 101B done
+#9 DONE 0.4s
+
+#12 [api build 1/4] FROM docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#12 resolve docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 0.2s done
+#12 DONE 0.2s
+
+#13 [api internal] load .dockerignore
+#13 transferring context: 184B 0.0s done
+#13 DONE 0.3s
+
+#14 [api internal] load build context
+#14 ...
+
+#12 [alert-logger build 1/4] FROM docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9
+#12 resolve docker.io/library/node:22-slim@sha256:48e4b67d85f87bd551df43704e24d252f56cc5f8e9718841aace50f19948f0f9 0.2s done
+#12 DONE 0.2s
+
+#15 [ehr-mock internal] load build context
+#15 transferring context: 31.98kB done
+#15 DONE 0.4s
+
+#16 [ehr-mock build 3/4] COPY package.json package-lock.json ./
+#16 CACHED
+
+#17 [ehr-mock build 4/4] RUN npm ci --omit=dev
+#17 CACHED
+
+#18 [ehr-mock stage-1 2/5] RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+#18 CACHED
+
+#19 [ehr-mock build 2/4] WORKDIR /app
+#19 CACHED
+
+#20 [ehr-mock stage-1 3/5] WORKDIR /app
+#20 CACHED
+
+#21 [ehr-mock stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#21 CACHED
+
+#22 [ehr-mock stage-1 5/5] COPY server.js ./
+#22 CACHED
+
+#23 [worker internal] load build context
+#23 transferring context: 21.93kB 0.0s done
+#23 DONE 0.4s
+
+#14 [api internal] load build context
+#14 transferring context: 47.23kB done
+#14 DONE 0.3s
+
+#24 [ai-service internal] load build context
+#24 transferring context: 30.91kB done
+#24 DONE 0.5s
+
+#25 [alert-logger internal] load build context
+#25 transferring context: 2.07kB done
+#25 DONE 0.3s
+
+#18 [worker stage-1 2/5] RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+#18 CACHED
+
+#19 [worker build 2/4] WORKDIR /app
+#19 CACHED
+
+#26 [worker stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#26 CACHED
+
+#20 [worker stage-1 3/5] WORKDIR /app
+#20 CACHED
+
+#27 [worker build 3/4] COPY package.json package-lock.json ./
+#27 CACHED
+
+#28 [worker build 4/4] RUN npm ci --omit=dev
+#28 CACHED
+
+#29 [worker stage-1 5/5] COPY worker.js ./
+#29 CACHED
+
+#30 [worker] exporting to image
+#30 exporting layers done
+#30 ...
+
+#31 [ai-service build 4/4] RUN npm ci --omit=dev
+#31 CACHED
+
+#32 [ai-service build 3/4] COPY package.json package-lock.json ./
+#32 CACHED
+
+#33 [ai-service stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#33 CACHED
+
+#19 [api build 2/4] WORKDIR /app
+#19 CACHED
+
+#34 [api build 4/4] RUN npm ci --omit=dev
+#34 CACHED
+
+#20 [api stage-1 3/5] WORKDIR /app
+#20 CACHED
+
+#18 [api stage-1 2/5] RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+#18 CACHED
+
+#35 [api stage-1 4/5] COPY --from=build /app/node_modules ./node_modules
+#35 CACHED
+
+#36 [api build 3/4] COPY package.json package-lock.json ./
+#36 CACHED
+
+#37 [api stage-1 5/5] COPY server.js validate.js ./
+#37 CACHED
+
+#38 [alert-logger 4/4] COPY server.js ./
+#38 CACHED
+
+#39 [ai-service stage-1 5/5] COPY server.js ./
+#39 CACHED
+
+#30 [worker] exporting to image
+#30 exporting manifest sha256:669af0dd06bc54647dc5f535d8e10a4d87cd7272cc306e222548a37d4294e0ad 0.0s done
+#30 exporting config sha256:2f569f34ae81be1c70cfa367a855d59bd441462b44ee95beb32f94e28e6f85c6 0.0s done
+#30 exporting attestation manifest sha256:b19e56a391a4cdece421d1839a16220fa30edf0ad373364631df780f98def337
+#30 ...
+
+#40 [ehr-mock] exporting to image
+#40 exporting layers done
+#40 exporting manifest sha256:adbd8489677083a36da11f610f7ad45f7abdafcf0053dda72cfe4182b6e83df9 done
+#40 exporting config sha256:22d1be8952c33ca772419a50edc60058006bdaa6a0381618ee5ab92fdd867b71 0.0s done
+#40 exporting attestation manifest sha256:4309fc3974316c25e3238d5bf426fa88048c76267d9fb4d87ba7504d2fd69124 0.2s done
+#40 exporting manifest list sha256:c268d1e58dadda7262340e32a13ddc7162119e8a77128ac6c9ad3cd1fc33c740 0.2s done
+#40 naming to docker.io/ai-healthcare/ehr-mock:5481515 0.2s done
+#40 unpacking to docker.io/ai-healthcare/ehr-mock:5481515 0.1s done
+#40 DONE 0.9s
+
+#30 [worker] exporting to image
+#30 exporting attestation manifest sha256:b19e56a391a4cdece421d1839a16220fa30edf0ad373364631df780f98def337 0.4s done
+#30 exporting manifest list sha256:8aa9baf573b89c3982c8990897850926a57a60fb366c086380be39c3a210df8b
+#30 exporting manifest list sha256:8aa9baf573b89c3982c8990897850926a57a60fb366c086380be39c3a210df8b 0.2s done
+#30 naming to docker.io/ai-healthcare/worker:5481515
+#30 naming to docker.io/ai-healthcare/worker:5481515 0.2s done
+#30 unpacking to docker.io/ai-healthcare/worker:5481515 0.1s done
+#30 DONE 1.1s
+
+#41 [api] exporting to image
+#41 exporting layers 0.0s done
+#41 exporting manifest sha256:b34538ed3b6d297226a4d893bcdc1dcd0bb83ca370f849259c3d95e12eb89ef6 0.1s done
+#41 exporting config sha256:b15583f8afa19379802c72c2236ce58f8ddbbc2c99845b34f79b7a400f25bc1c 0.1s done
+#41 exporting attestation manifest sha256:7673261e86ff1b21d066dc7e7d11eb6fb09ba0c1f1cb90677e2622b385789c46 0.4s done
+#41 exporting manifest list sha256:d6a275813495e79dd79174b475f09983dd70f403e3ceac00842d663bd247cdcd 0.2s done
+#41 naming to docker.io/ai-healthcare/api:5481515 0.0s done
+#41 unpacking to docker.io/ai-healthcare/api:5481515
+#41 unpacking to docker.io/ai-healthcare/api:5481515 0.0s done
+#41 DONE 1.1s
+
+#42 [ai-service] exporting to image
+#42 exporting layers done
+#42 exporting manifest sha256:41339b0503c9a06d5c0a2bf1a7dfd5cefa3fe237e1827a3e0d036be0bd33799e 0.0s done
+#42 exporting config sha256:9814d1cb8f43ad608016b6c5e87e4eb9fea974f172cd97ec5f4e5ead5bc7f79e 0.1s done
+#42 exporting attestation manifest sha256:904cdb5366862a5023b862df7ff60cd04928d354f210b57f31b37340157c53a3 0.3s done
+#42 exporting manifest list sha256:e5e6fe25336204af00994b53421a361158fef611ac378f8905032609b0f50990 0.2s done
+#42 naming to docker.io/ai-healthcare/ai-service:5481515 0.1s done
+#42 unpacking to docker.io/ai-healthcare/ai-service:5481515 0.0s done
+#42 DONE 1.1s
+
+#43 [alert-logger] exporting to image
+#43 exporting layers done
+#43 exporting manifest sha256:7244bcdd93077ac7dea1a3ccfef138dbe0539ad0276ea2c70bc4b1ab26436d8e 0.1s done
+#43 exporting config sha256:61717b8081abecd7864dda02f7a1e10d57bfabd0d49748ccd515f2dcb2fe7a01 0.1s done
+#43 exporting attestation manifest sha256:480704e6902410872d7cc04e8a095b26e72f0b7eb911602fa6abd3c1e820146c 0.4s done
+#43 exporting manifest list sha256:a22b13c1b38fd0ce22187f75918b2c8c758160557d4a1c80f227938f3d0116a8 0.2s done
+#43 naming to docker.io/ai-healthcare/alert-logger:5481515 0.0s done
+#43 unpacking to docker.io/ai-healthcare/alert-logger:5481515 0.0s done
+#43 DONE 1.1s
+
+#44 [ehr-mock] resolving provenance for metadata file
+#44 DONE 0.5s
+
+#45 [alert-logger] resolving provenance for metadata file
+#45 DONE 0.1s
+
+#46 [worker] resolving provenance for metadata file
+#46 DONE 0.4s
+
+#47 [ai-service] resolving provenance for metadata file
+#47 DONE 0.3s
+
+#48 [api] resolving provenance for metadata file
+#48 DONE 0.0s
+ ai-healthcare/alert-logger:5481515  Built
+ ai-healthcare/api:5481515  Built
+ ai-healthcare/ai-service:5481515  Built
+ ai-healthcare/worker:5481515  Built
+ ai-healthcare/ehr-mock:5481515  Built
+built + dual-tagged (:5481515 exact, :0.1.0-dev alias):
+ai-healthcare/ai-service:0.1.0-dev 332MB
+ai-healthcare/ai-service:5481515 332MB
+ai-healthcare/alert-logger:0.1.0-dev 327MB
+ai-healthcare/alert-logger:5481515 327MB
+ai-healthcare/api:0.1.0-dev 345MB
+ai-healthcare/api:5481515 345MB
+ai-healthcare/ehr-mock:0.1.0-dev 332MB
+ai-healthcare/ehr-mock:5481515 332MB
+ai-healthcare/worker:0.1.0-dev 339MB
+ai-healthcare/worker:5481515 339MB
+
+===== [pipeline:5481515] STAGE: security (trivy app-dependency gate on NEW images) =====
+=== Trivy app-dependency gate (tag: 0.1.0-dev; OS baseline non-blocking per SECURITY.md R1) ===
+-- ai-healthcare/api:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] api app dependencies clean
+-- ai-healthcare/ai-service:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] ai-service app dependencies clean
+-- ai-healthcare/worker:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] worker app dependencies clean
+-- ai-healthcare/ehr-mock:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] ehr-mock app dependencies clean
+-- ai-healthcare/alert-logger:0.1.0-dev
+   app-dependency (lang-pkgs) HIGH/CRITICAL: 0 | OS-layer (accepted baseline R1): 56
+   [GATE-PASS] alert-logger app dependencies clean
+===================================
+TRIVY GATE: PASS
+
+===== [pipeline:5481515] STAGE: deploy dev =====
+previous dev tag: '434c7e7'
+ Container ai-healthcare-dev-alert-logger-1  Recreate
+ Container ai-healthcare-dev-pushgateway-1  Running
+ Container ai-healthcare-dev-db-1  Running
+ Container ai-healthcare-dev-ehr-mock-1  Recreate
+ Container ai-healthcare-dev-queue-1  Running
+ Container ai-healthcare-dev-api-1  Recreate
+ Container ai-healthcare-dev-ai-service-1  Recreate
+ Container ai-healthcare-dev-worker-1  Recreate
+ Container ai-healthcare-dev-redis-exporter-1  Running
+ Container ai-healthcare-dev-mongodb-exporter-1  Running
+ Container ai-healthcare-dev-prometheus-1  Running
+ Container ai-healthcare-dev-grafana-1  Running
+ Container ai-healthcare-dev-alertmanager-1  Running
+ Container ai-healthcare-dev-alert-logger-1  Recreated
+ Container ai-healthcare-dev-ai-service-1  Recreated
+ Container ai-healthcare-dev-worker-1  Recreated
+ Container ai-healthcare-dev-api-1  Recreated
+ Container ai-healthcare-dev-gateway-1  Running
+ Container ai-healthcare-dev-nginx-exporter-1  Running
+ Container ai-healthcare-dev-ehr-mock-1  Recreated
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-alert-logger-1  Starting
+ Container ai-healthcare-dev-ai-service-1  Starting
+ Container ai-healthcare-dev-ehr-mock-1  Starting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-queue-1  Waiting
+ Container ai-healthcare-dev-db-1  Waiting
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-worker-1  Starting
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-queue-1  Healthy
+ Container ai-healthcare-dev-db-1  Healthy
+ Container ai-healthcare-dev-api-1  Starting
+ Container ai-healthcare-dev-alert-logger-1  Started
+ Container ai-healthcare-dev-ehr-mock-1  Started
+ Container ai-healthcare-dev-ai-service-1  Started
+ Container ai-healthcare-dev-worker-1  Started
+ Container ai-healthcare-dev-api-1  Started
+ Container ai-healthcare-dev-api-1  Waiting
+ Container ai-healthcare-dev-api-1  Healthy
+
+===== [pipeline:5481515] STAGE: health gate dev =====
+health gate (dev): polling http://localhost:8080/ready (timeout 120s)…
+health gate (dev): READY after ~0s — {"ready":true,"checks":{"db":"ok","queue":"ok"}}
+== gateway health ==
+{"status":"ok","service":"api","version":"5481515","db":"mongodb"}
+== api ready via gateway ==
+{"ready":true,"checks":{"db":"ok","queue":"ok"}}
+== create appointment ==
+{"job_id":"job-3816cebef3df","appointment_id":"appt-d1193a996707","status":"queued"}
+== list appointments ==
+[{"id":"appt-fff93db1d294","patient":"load-p8","doctor":"dr-load","status":"processed"},{"id":"appt-ffefdd432288","patient":"k6-p-4-52","doctor":"dr-k6","status":"processed"},{"id":"appt-fface974f1c7","patient":"k6-p-1-6","doctor":"dr-k6","status":"processed"}]
+== metrics ==
+{"service":"api","version":"5481515","uptime_s":8.1,"requests_total":1,"errors_total":0,"avg_latency_ms":13,"queue_depth":0}
+SMOKE OK
+enqueued=10 avg_latency_ms=10.8 p95=8.8
+queue_depth=9 requests=11
+queue_depth=3 requests=11
+queue_depth=0 requests=11
+WORKLOAD DONE
+dev stage complete — healthy on tag 5481515
+
+===== [pipeline:5481515] STAGE: promote prod-like =====
+previous prod-like tag: '434c7e7'
+ Container ai-healthcare-prodlike-prometheus-1  Running
+ Container ai-healthcare-prodlike-alert-logger-1  Recreate
+ Container ai-healthcare-prodlike-ehr-mock-1  Recreate
+ Container ai-healthcare-prodlike-grafana-1  Running
+ Container ai-healthcare-prodlike-queue-1  Running
+ Container ai-healthcare-prodlike-redis-exporter-1  Running
+ Container ai-healthcare-prodlike-alertmanager-1  Running
+ Container ai-healthcare-prodlike-db-1  Running
+ Container ai-healthcare-prodlike-pushgateway-1  Running
+ Container ai-healthcare-prodlike-ai-service-1  Recreate
+ Container ai-healthcare-prodlike-mongodb-exporter-1  Running
+ Container ai-healthcare-prodlike-worker-1  Recreate
+ Container ai-healthcare-prodlike-api-1  Recreate
+ Container ai-healthcare-prodlike-ehr-mock-1  Recreated
+ Container ai-healthcare-prodlike-worker-1  Recreated
+ Container ai-healthcare-prodlike-ai-service-1  Recreated
+ Container ai-healthcare-prodlike-alert-logger-1  Recreated
+ Container ai-healthcare-prodlike-api-1  Recreated
+ Container ai-healthcare-prodlike-gateway-1  Running
+ Container ai-healthcare-prodlike-nginx-exporter-1  Running
+ Container ai-healthcare-prodlike-alert-logger-1  Starting
+ Container ai-healthcare-prodlike-db-1  Waiting
+ Container ai-healthcare-prodlike-ehr-mock-1  Starting
+ Container ai-healthcare-prodlike-ai-service-1  Starting
+ Container ai-healthcare-prodlike-queue-1  Waiting
+ Container ai-healthcare-prodlike-db-1  Waiting
+ Container ai-healthcare-prodlike-queue-1  Waiting
+ Container ai-healthcare-prodlike-db-1  Waiting
+ Container ai-healthcare-prodlike-queue-1  Waiting
+ Container ai-healthcare-prodlike-alert-logger-1  Started
+ Container ai-healthcare-prodlike-db-1  Healthy
+ Container ai-healthcare-prodlike-queue-1  Healthy
+ Container ai-healthcare-prodlike-worker-1  Starting
+ Container ai-healthcare-prodlike-db-1  Healthy
+ Container ai-healthcare-prodlike-queue-1  Healthy
+ Container ai-healthcare-prodlike-queue-1  Healthy
+ Container ai-healthcare-prodlike-api-1  Starting
+ Container ai-healthcare-prodlike-db-1  Healthy
+ Container ai-healthcare-prodlike-ehr-mock-1  Started
+ Container ai-healthcare-prodlike-ai-service-1  Started
+ Container ai-healthcare-prodlike-worker-1  Started
+ Container ai-healthcare-prodlike-api-1  Started
+ Container ai-healthcare-prodlike-api-1  Waiting
+ Container ai-healthcare-prodlike-api-1  Healthy
+
+===== [pipeline:5481515] STAGE: post-promote health check =====
+health gate (prod-like): polling http://localhost:8081/ready (timeout 120s)…
+health gate (prod-like): READY after ~0s — {"ready":true,"checks":{"db":"ok","queue":"ok"}}
+== gateway health ==
+{"status":"ok","service":"api","version":"5481515","db":"mongodb"}
+== api ready via gateway ==
+{"ready":true,"checks":{"db":"ok","queue":"ok"}}
+== create appointment ==
+{"job_id":"job-7a895a69bf61","appointment_id":"appt-22bb389ea837","status":"queued"}
+== list appointments ==
+[{"id":"appt-eaa05f2230f6","patient":"smoke-patient","doctor":"dr-smoke","status":"processed"},{"id":"appt-e91c526045af","patient":"smoke-patient","doctor":"dr-smoke","status":"processed"},{"id":"appt-e4dfb64a7229","patient":"smoke-patient","doctor":"dr-smoke","status":"processed"}]
+== metrics ==
+{"service":"api","version":"5481515","uptime_s":8.1,"requests_total":1,"errors_total":0,"avg_latency_ms":21,"queue_depth":0}
+SMOKE OK
+
+----- traceability: running image tags -----
+-- dev (environments/dev.env) --
+SERVICE            IMAGE                                                                                                           STATUS
+ai-service         ai-healthcare/ai-service:5481515                                                                                Up 38 seconds (healthy)
+alert-logger       ai-healthcare/alert-logger:5481515                                                                              Up 38 seconds (healthy)
+alertmanager       prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8               Up 22 minutes (healthy)
+api                ai-healthcare/api:5481515                                                                                       Up 38 seconds (healthy)
+db                 mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0                           Up 52 minutes (healthy)
+ehr-mock           ai-healthcare/ehr-mock:5481515                                                                                  Up 38 seconds (healthy)
+gateway            nginx:alpine@sha256:4870c12cd2ca986de501a804b4f506ad3875a0b1874940ba0a2c7f763f1855b2                            Up 34 minutes (healthy)
+grafana            grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb                  Up 25 minutes (healthy)
+mongodb-exporter   percona/mongodb_exporter:0.40.0@sha256:d66daa6aff0513860d1577cee3b55ab82fde43394f8319d7b4674411b9153cce         Up 52 minutes
+nginx-exporter     nginx/nginx-prometheus-exporter:1.4.2@sha256:6edfb73afd11f2d83ea4e8007f5068c3ffaa38078a6b0ad1339e5bd2f637aacd   Up 52 minutes
+prometheus         prom/prometheus:v3.6.0@sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64                  Up 25 minutes (healthy)
+pushgateway        prom/pushgateway:v1.10.0@sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604                Up 25 minutes (healthy)
+queue              redis:7-alpine@sha256:520775a41a63e77e06c73e35d2fd9cc15921a609516818796b4ecbb813078bc7                          Up 52 minutes (healthy)
+redis-exporter     oliver006/redis_exporter:v1.68.0@sha256:e7e96895407ae28cf28dc97c73c9cd958c5adb4746120e2664569393436c1bd0        Up 52 minutes
+worker             ai-healthcare/worker:5481515                                                                                    Up 38 seconds (healthy)
+-- prod-like (environments/prod.env) --
+SERVICE            IMAGE                                                                                                           STATUS
+ai-service         ai-healthcare/ai-service:5481515                                                                                Up 11 seconds (healthy)
+alert-logger       ai-healthcare/alert-logger:5481515                                                                              Up 11 seconds (healthy)
+alertmanager       prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8               Up 25 minutes (healthy)
+api                ai-healthcare/api:5481515                                                                                       Up 11 seconds (healthy)
+db                 mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0                           Up 38 minutes (healthy)
+ehr-mock           ai-healthcare/ehr-mock:5481515                                                                                  Up 11 seconds (healthy)
+gateway            nginx:alpine@sha256:4870c12cd2ca986de501a804b4f506ad3875a0b1874940ba0a2c7f763f1855b2                            Up 34 minutes (healthy)
+grafana            grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb                  Up 25 minutes (healthy)
+mongodb-exporter   percona/mongodb_exporter:0.40.0@sha256:d66daa6aff0513860d1577cee3b55ab82fde43394f8319d7b4674411b9153cce         Up 2 minutes
+nginx-exporter     nginx/nginx-prometheus-exporter:1.4.2@sha256:6edfb73afd11f2d83ea4e8007f5068c3ffaa38078a6b0ad1339e5bd2f637aacd   Up 2 minutes
+prometheus         prom/prometheus:v3.6.0@sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64                  Up 25 minutes (healthy)
+pushgateway        prom/pushgateway:v1.10.0@sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604                Up 25 minutes (healthy)
+queue              redis:7-alpine@sha256:520775a41a63e77e06c73e35d2fd9cc15921a609516818796b4ecbb813078bc7                          Up 38 minutes (healthy)
+redis-exporter     oliver006/redis_exporter:v1.68.0@sha256:e7e96895407ae28cf28dc97c73c9cd958c5adb4746120e2664569393436c1bd0        Up 2 minutes
+worker             ai-healthcare/worker:5481515                                                                                    Up 11 seconds (healthy)
+run tag: 5481515 (git SHA when available; CI uses github.sha)
+pipeline metrics pushed
+
+##### RESULT: PASS — tag 5481515 healthy in dev AND prod-like (log: docs/pipeline-evidence/pipeline-5481515.log)
