@@ -107,3 +107,43 @@ groups:
           summary: "Metrics exporter down (job {{ $labels.job }})"
           description: "Prometheus cannot scrape the {{ $labels.job }} exporter. App traffic is unaffected; observability for that component is blind until it recovers."
           runbook: "1) docker compose ps <job>-exporter + logs. 2) up -d to recreate (restart: unless-stopped revives crashes). 3) Check the Grafana dashboard panel for that component — it will show gaps."
+
+      - alert: AIUnavailable
+        expr: up{job="ai-service"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "AI mock service down (no scrape for 1m)"
+          description: "API /ai/query degrades to 502 fallback. Queue/DB traffic unaffected."
+          runbook: "1) docker compose ps ai-service + logs. 2) up -d ai-service (restart: unless-stopped revives crashes). 3) Verify POST /ai/query via gateway; check ai_infer_auth_fail_total for 401 spikes (wrong key, not outage)."
+
+      - alert: EHRMockDown
+        expr: up{job="ehr-mock"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "EHR mock process down (no scrape for 1m)"
+          description: "Distinct from logical outage (EHROutage): the container itself is gone, so worker EHR calls fail fast instead of degrading."
+          runbook: "1) docker compose ps ehr-mock + logs. 2) up -d ehr-mock. 3) If container healthy but EHROutage fires, it is a logical mode failure (EHR_MODE) — see docs/INCIDENTS.md INC-02."
+
+      - alert: ConfigFailure
+        expr: api_ready == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "API reports not-ready (DB or queue unreachable) for 2m"
+          description: "Dependency/config failure: /ready fail-fast is engaged, creates return 503. Usually bad credentials, wrong env file, or DB/queue outage."
+          runbook: "1) curl /ready for checks detail (db vs queue). 2) Verify env file + MONGO/REDIS connectivity (see INC-03). 3) Never bypass the health gate — fix config, redeploy."
+
+      - alert: SaturationWarning
+        expr: api_queue_depth > 50 or (sum(rate(api_latency_ms_sum[5m])) / sum(rate(api_requests_total[5m])) > 1000)
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Saturation: deep queue (>50) or mean latency >1s for 2m"
+          description: "Host-level resource pressure proxy (no cadvisor in Compose scope — see SPOF cost notes). Producers outrun consumers or DB is saturated."
+          runbook: "1) docker stats for CPU/mem; queue-depth panel for growth rate. 2) Scale workers (scripts/autoscale.sh). 3) If DB-bound, check mongo slow ops; retention is 7d/1GB so disk-full also presents here."

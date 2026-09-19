@@ -12,14 +12,34 @@ const PORT = 8002;
 const app = express();
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const startedAt = Date.now();
+const modeCounts = { ok: 0, slow: 0, timeout: 0, error: 0, auth_fail: 0, unavailable: 0, unknown: 0, other: 0 };
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'ehr-mock', default_mode: DEFAULT_MODE });
 });
 
+// Prometheus exposition (scraped as job="ehr-mock"). The worker's
+// outcome mix remains the authoritative logical-health signal; this
+// endpoint proves the mock process itself is up and shows which mode
+// served what (useful when INC-02-style outages are injected).
+app.get('/metrics/prom', (req, res) => {
+  const uptimeS = Math.round((Date.now() - startedAt) / 100) / 10;
+  const lines = [
+    '# HELP ehr_requests_total Mock EHR requests by served mode.',
+    '# TYPE ehr_requests_total counter',
+    ...Object.entries(modeCounts).map(([m, n]) => `ehr_requests_total{mode="${m}"} ${n}`),
+    '# HELP ehr_uptime_seconds Process uptime.',
+    '# TYPE ehr_uptime_seconds gauge',
+    `ehr_uptime_seconds ${uptimeS}`,
+  ];
+  res.type('text/plain; version=0.0.4').send(`${lines.join('\n')}\n`);
+});
+
 app.get('/record/:recordId', async (req, res) => {
   const m = String(req.query.mode || DEFAULT_MODE).toLowerCase();
   const id = req.params.recordId;
+  if (modeCounts[m] !== undefined) modeCounts[m] += 1; else modeCounts.other += 1;
   if (m === 'slow') {
     // NOTE (MERN port): 2s, not 3s. The Python mock slept 3s against a 3s client
     // timeout (EHR_TIMEOUT_S) — a boundary race Node's precise timers always lose

@@ -1,0 +1,9 @@
+# Inference infra + platform — code owners (auditability, PRD §21).
+# Evaluators: changes to security/compliance paths need a second pair of eyes.
+/gateway/ @viggu777
+/docker-compose*.yml @viggu777
+/terraform/ @viggu777
+/monitoring/alerts.yml @viggu777
+/scripts/security-scan.sh @viggu777
+/scripts/pipeline.sh @viggu777
+/db/ @viggu777

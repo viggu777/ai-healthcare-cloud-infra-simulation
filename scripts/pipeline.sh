@@ -183,6 +183,8 @@ if [ ! -f gateway/tls/gateway.crt ]; then
 else
   echo "  [lint-ok] gateway TLS cert present"
 fi
+# IaC plan artifact (PRD §6 recreation proof, hashed for auditability §21).
+bash scripts/infra-plan.sh --tag "$RUN_TAG" --env-file "$DEV_ENV" || die "infra plan failed"
 for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
          services/ai-service/server.js services/worker/worker.js services/ehr-mock/server.js \
          services/alert-logger/server.js; do
@@ -233,6 +235,11 @@ set_stage "security (trivy app-dependency gate on NEW images)"
 bash scripts/trivy-gate.sh --tag "$RUN_TAG" || die "trivy gate tripped on newly built images"
 SECURITY_OK=1
 
+# Supply-chain (SBOM/IaC informative; k6 perf gate runs post-deploy below).
+# Informative by design here so offline runners stay green; failures print
+# but do not block — the blocking perf verdict comes from the k6 gate stage.
+bash scripts/supply-chain.sh --env-file "$DEV_ENV" --skip-k6 2>&1 | tail -6 || echo "(supply-chain informative stage warned — see above)"
+
 # ---- deploy dev ----
 set_stage "deploy dev"
 DEPLOYING_ENV_FILE="$DEV_ENV"
@@ -246,6 +253,9 @@ health_gate "$DEV_GW" "$HEALTH_TIMEOUT" "dev" || die "dev health gate failed"
 GATEWAY_URL="$DEV_GW" bash scripts/smoke.sh || die "dev smoke failed"
 if [ "$WORKLOAD_N" != "0" ]; then
   python3 scripts/workload.py "$DEV_GW" "$WORKLOAD_N" || die "dev workload failed"
+  # Perf gate (blocking): k6 thresholds against the freshly deployed dev.
+  bash scripts/supply-chain.sh --env-file "$DEV_ENV" --k6-only 2>&1 | tail -4 \
+    || die "k6 perf gate tripped on dev"
 fi
 DEPLOYING_ENV_FILE=""; DEPLOYING_PREV_TAG=""
 echo "dev stage complete — healthy on tag $RUN_TAG"

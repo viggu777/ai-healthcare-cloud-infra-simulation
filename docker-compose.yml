@@ -28,6 +28,12 @@ volumes:
   prometheus-data:
   grafana-data:
 
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
 services:
   gateway:
     # Phase 3: base image pinned by digest (closes SECURITY.md R5). Digest
@@ -37,6 +43,7 @@ services:
       api:
         condition: service_healthy
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - public
     ports:
@@ -69,13 +76,14 @@ services:
       queue:
         condition: service_healthy
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - public
       - private
     environment:
       APP_VERSION: ${APP_VERSION:-0.1.0}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      MONGODB_URI: mongodb://${MONGO_USER:-app}:${MONGO_PASSWORD:-app_secret_change_me}@db:27017/${MONGO_DB:-healthcare}?authSource=admin
+      MONGODB_URI: mongodb://${MONGO_API_USER:-api_user}:${MONGO_API_PASSWORD:-api_only_change_me}@db:27017/${MONGO_DB:-healthcare}?authSource=healthcare
       MONGO_DB: ${MONGO_DB:-healthcare}
       REDIS_URL: redis://queue:6379/0
       AI_SERVICE_URL: http://ai-service:8001
@@ -97,6 +105,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     environment:
@@ -122,10 +131,11 @@ services:
       queue:
         condition: service_healthy
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     environment:
-      MONGODB_URI: mongodb://${MONGO_USER:-app}:${MONGO_PASSWORD:-app_secret_change_me}@db:27017/${MONGO_DB:-healthcare}?authSource=admin
+      MONGODB_URI: mongodb://${MONGO_WORKER_USER:-worker_user}:${MONGO_WORKER_PASSWORD:-worker_only_change_me}@db:27017/${MONGO_DB:-healthcare}?authSource=healthcare
       MONGO_DB: ${MONGO_DB:-healthcare}
       REDIS_URL: redis://queue:6379/0
       EHR_URL: http://ehr-mock:8002
@@ -154,6 +164,7 @@ services:
     # appendonlydir). Isolated on private internal net instead; revisit with
     # explicit cap_add (CHOWN, SETGID, SETUID) in Phase 3.
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     volumes:
@@ -168,6 +179,7 @@ services:
     # Phase 3: pinned by digest (see gateway note).
     image: mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     environment:
@@ -192,6 +204,7 @@ services:
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     environment:
@@ -217,6 +230,7 @@ services:
       - --storage.tsdb.retention.time=7d
       - --storage.tsdb.retention.size=1GB
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     volumes:
@@ -237,6 +251,7 @@ services:
     command:
       - --config.file=/etc/alertmanager/alertmanager.yml
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     volumes:
@@ -259,6 +274,7 @@ services:
     build: ./services/alert-logger
     image: ai-healthcare/alert-logger:${APP_VERSION:-0.1.0}
     restart: unless-stopped
+    logging: *default-logging
     cap_drop:
       - ALL
     security_opt:
@@ -280,6 +296,7 @@ services:
     # path from the host onto the private net); scraped by Prometheus.
     image: prom/pushgateway:v1.10.0@sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - private
     # P1.3: container healthcheck.
@@ -299,6 +316,7 @@ services:
     # 127.0.0.1-bound (host admin only, never LAN/internet, never via gateway).
     image: grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
     restart: unless-stopped
+    logging: *default-logging
     networks:
       - public
       - private

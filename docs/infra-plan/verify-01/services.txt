@@ -1,0 +1,15 @@
+ai-service
+alert-logger
+alertmanager
+api
+db
+ehr-mock
+gateway
+grafana
+mongodb-exporter
+nginx-exporter
+prometheus
+pushgateway
+queue
+redis-exporter
+worker

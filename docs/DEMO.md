@@ -31,12 +31,14 @@ curl -s http://localhost:8080/metrics | head -c 300
 - Prove sole ingress: `docker ps --format '{{.Names}} {{.Ports}}'` — only
   `...-gateway-1` has a host port. Direct `:8001` refused:
   `curl -m 3 http://localhost:8001/health` → connection refused.
-- Prove isolation: `python3 scripts/compose-lint.py` → 70 pass / 0 fail / 4 warn
+- Prove isolation: `python3 scripts/compose-lint.py` → 77 pass / 0 fail / 4 warn
   (warns are documented exceptions: gateway/db/queue caps, Grafana localhost port).
+  Outbound proof: `bash scripts/check-outbound.sh` → 6/0 (no internet route,
+  controlled internal paths, sole ingress).
 - Observability: open `http://127.0.0.1:3000` (admin/dev_only_change_me) —
   "AI Healthcare Sim — Overview": API/worker/queue/DB/EHR/deployment panels;
   Prometheus targets: `docker exec ai-healthcare-dev-prometheus-1 wget -qO- http://localhost:9090/api/v1/targets?state=active`
-  (6/6 up); rules (`.../api/v1/rules`): 9 loaded.
+  (8/8 up: api/worker/ai-service/ehr-mock/nginx/redis/mongodb/pushgateway); rules (`.../api/v1/rules`): 14 loaded.
 
 ## 3. IaC recreation (3 min)
 

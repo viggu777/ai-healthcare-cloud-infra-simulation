@@ -1,0 +1,434 @@
+name: ai-healthcare-prodlike
+services:
+  ai-service:
+    build:
+      context: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/services/ai-service
+      dockerfile: Dockerfile
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: "268435456"
+    environment:
+      AI_API_KEY: prodlike_ai_key_change_me
+      LOG_LEVEL: info
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:8001/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 15s
+    image: ai-healthcare/ai-service:0.1.0
+    networks:
+      private: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+  alert-logger:
+    build:
+      context: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/services/alert-logger
+      dockerfile: Dockerfile
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: "134217728"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:9089/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 15s
+    image: ai-healthcare/alert-logger:0.1.0
+    networks:
+      private: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/alert-notifications
+        target: /data
+        bind:
+          create_host_path: true
+  alertmanager:
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+    depends_on:
+      prometheus:
+        condition: service_started
+        required: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:9093/-/healthy || exit 1
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 20s
+    image: prom/alertmanager:v0.28.0@sha256:d5155cfac40a6d9250ffc97c19db2c5e190c7bc57c6b67125c94903358f8c7d8
+    networks:
+      private: null
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/alertmanager.yml
+        target: /etc/alertmanager/alertmanager.yml
+        read_only: true
+        bind:
+          create_host_path: true
+  api:
+    build:
+      context: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/services/api
+      dockerfile: Dockerfile
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+      queue:
+        condition: service_healthy
+        required: true
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: "536870912"
+    environment:
+      AI_API_KEY: prodlike_ai_key_change_me
+      AI_SERVICE_URL: http://ai-service:8001
+      APP_VERSION: 0.1.0
+      EHR_TIMEOUT_S: "3"
+      EHR_URL: http://ehr-mock:8002
+      LOG_LEVEL: info
+      MONGO_DB: healthcare
+      MONGODB_URI: mongodb://api_user:prodlike_api_only_change_me@db:27017/healthcare?authSource=healthcare
+      REDIS_URL: redis://queue:6379/0
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:8000/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      timeout: 5s
+      interval: 10s
+      retries: 3
+      start_period: 20s
+    image: ai-healthcare/api:0.1.0
+    networks:
+      private: null
+      public: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+  db:
+    environment:
+      MONGO_INITDB_DATABASE: healthcare
+      MONGO_INITDB_ROOT_PASSWORD: prodlike_only_change_me
+      MONGO_INITDB_ROOT_USERNAME: app
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - mongosh --quiet --eval 'db.adminCommand("ping")' || mongosh --quiet -u "$${MONGO_INITDB_ROOT_USERNAME}" -p "$${MONGO_INITDB_ROOT_PASSWORD}" --eval 'db.adminCommand("ping")'
+      timeout: 5s
+      interval: 10s
+      retries: 5
+      start_period: 20s
+    image: mongo:7-jammy@sha256:84c4a18b60a0e73d1577112b0a600b46cab477c64cfe0ff36d0647bbca055bd0
+    networks:
+      private: null
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: mongodb_data
+        target: /data/db
+        volume: {}
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/db/mongo-init.js
+        target: /docker-entrypoint-initdb.d/mongo-init.js
+        read_only: true
+        bind:
+          create_host_path: true
+  ehr-mock:
+    build:
+      context: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/services/ehr-mock
+      dockerfile: Dockerfile
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: 0.25
+          memory: "268435456"
+    environment:
+      EHR_MODE: ok
+      LOG_LEVEL: info
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:8002/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 10s
+    image: ai-healthcare/ehr-mock:0.1.0
+    networks:
+      private: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+  gateway:
+    depends_on:
+      api:
+        condition: service_healthy
+        required: true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1/health || exit 1
+      timeout: 3s
+      interval: 10s
+      retries: 3
+      start_period: 10s
+    image: nginx:alpine@sha256:4870c12cd2ca986de501a804b4f506ad3875a0b1874940ba0a2c7f763f1855b2
+    networks:
+      public: null
+    ports:
+      - mode: ingress
+        target: 80
+        published: "8081"
+        protocol: tcp
+      - mode: ingress
+        target: 443
+        published: "8444"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/gateway/nginx.conf
+        target: /etc/nginx/conf.d/default.conf
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/gateway/tls
+        target: /etc/nginx/tls
+        read_only: true
+        bind:
+          create_host_path: true
+  grafana:
+    depends_on:
+      prometheus:
+        condition: service_started
+        required: true
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: prodlike_only_change_me
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 45s
+    image: grafana/grafana:11.6.0@sha256:62d2b9d20a19714ebfe48d1bb405086081bc602aa053e28cf6d73c7537640dfb
+    networks:
+      private: null
+      public: null
+    ports:
+      - mode: ingress
+        host_ip: 127.0.0.1
+        target: 3000
+        published: "3001"
+        protocol: tcp
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/grafana/provisioning
+        target: /etc/grafana/provisioning
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/grafana/dashboards
+        target: /var/lib/grafana/dashboards
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: volume
+        source: grafana-data
+        target: /var/lib/grafana
+        volume: {}
+  mongodb-exporter:
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+    environment:
+      MONGODB_URI: mongodb://app:prodlike_only_change_me@db:27017/admin?authSource=admin
+    image: percona/mongodb_exporter:0.40.0@sha256:d66daa6aff0513860d1577cee3b55ab82fde43394f8319d7b4674411b9153cce
+    networks:
+      private: null
+    restart: unless-stopped
+  nginx-exporter:
+    command:
+      - -nginx.scrape-uri=http://gateway:80/nginx_status
+    depends_on:
+      gateway:
+        condition: service_started
+        required: true
+    image: nginx/nginx-prometheus-exporter:1.4.2@sha256:6edfb73afd11f2d83ea4e8007f5068c3ffaa38078a6b0ad1339e5bd2f637aacd
+    networks:
+      private: null
+      public: null
+    restart: unless-stopped
+  prometheus:
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=7d
+      - --storage.tsdb.retention.size=1GB
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:9090/-/healthy || exit 1
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 30s
+    image: prom/prometheus:v3.6.0@sha256:76947e7ef22f8a698fc638f706685909be425dbe09bd7a2cd7aca849f79b5f64
+    networks:
+      private: null
+    restart: unless-stopped
+    volumes:
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/prometheus.yml
+        target: /etc/prometheus/prometheus.yml
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: bind
+        source: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/monitoring/alerts.yml
+        target: /etc/prometheus/alerts.yml
+        read_only: true
+        bind:
+          create_host_path: true
+      - type: volume
+        source: prometheus-data
+        target: /prometheus
+        volume: {}
+  pushgateway:
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q -O /dev/null http://127.0.0.1:9091/-/healthy || exit 1
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 15s
+    image: prom/pushgateway:v1.10.0@sha256:7a4d0696a24ef4e8bad62bee5656855a0aff2f26416d8cb32009dc28d6263604
+    networks:
+      private: null
+    restart: unless-stopped
+  queue:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+    healthcheck:
+      test:
+        - CMD
+        - redis-cli
+        - ping
+      timeout: 3s
+      interval: 10s
+      retries: 5
+    image: redis:7-alpine@sha256:520775a41a63e77e06c73e35d2fd9cc15921a609516818796b4ecbb813078bc7
+    networks:
+      private: null
+    restart: unless-stopped
+    volumes:
+      - type: volume
+        source: queue-data
+        target: /data
+        volume: {}
+  redis-exporter:
+    depends_on:
+      queue:
+        condition: service_healthy
+        required: true
+    environment:
+      REDIS_ADDR: redis://queue:6379
+    image: oliver006/redis_exporter:v1.68.0@sha256:e7e96895407ae28cf28dc97c73c9cd958c5adb4746120e2664569393436c1bd0
+    networks:
+      private: null
+    restart: unless-stopped
+  worker:
+    build:
+      context: /home/viggu/Documents/ai-healthcare-cloud-infra-simulation/services/worker
+      dockerfile: Dockerfile
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+        required: true
+      queue:
+        condition: service_healthy
+        required: true
+    deploy:
+      resources:
+        limits:
+          cpus: 0.5
+          memory: "536870912"
+    environment:
+      BREAKER_COOLDOWN_MS: "15000"
+      BREAKER_THRESHOLD: "5"
+      EHR_BACKOFF_BASE_MS: "1000"
+      EHR_BACKOFF_MAX_MS: "8000"
+      EHR_MAX_ATTEMPTS: "3"
+      EHR_URL: http://ehr-mock:8002
+      LOG_LEVEL: info
+      MONGO_DB: healthcare
+      MONGODB_URI: mongodb://worker_user:prodlike_worker_only_change_me@db:27017/healthcare?authSource=healthcare
+      REDIS_URL: redis://queue:6379/0
+      WORKER_CONCURRENCY: "4"
+      WORKER_FAIL_MODE: "off"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - node -e "fetch('http://localhost:8003/health',{signal:AbortSignal.timeout(3000)}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
+      timeout: 5s
+      interval: 15s
+      retries: 3
+      start_period: 20s
+    image: ai-healthcare/worker:0.1.0
+    networks:
+      private: null
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+networks:
+  private:
+    name: ai-healthcare-prodlike_private
+    internal: true
+  public:
+    name: ai-healthcare-prodlike_public
+volumes:
+  grafana-data:
+    name: ai-healthcare-prodlike_grafana-data
+  mongodb_data:
+    name: ai-healthcare-prodlike_mongodb_data
+  prometheus-data:
+    name: ai-healthcare-prodlike_prometheus-data
+  queue-data:
+    name: ai-healthcare-prodlike_queue-data

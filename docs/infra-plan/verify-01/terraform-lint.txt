@@ -1,0 +1,6 @@
+terraform files: ['variables.tf', 'main.tf', 'outputs.tf']
+[PASS] variables.tf braces balanced (17 blocks)
+[PASS] main.tf braces balanced (53 blocks)
+[PASS] outputs.tf braces balanced (5 blocks)
+[PASS] contains resource "terraform_data" "network_private"
+[PASS] contains resource "terraform_data" "api"

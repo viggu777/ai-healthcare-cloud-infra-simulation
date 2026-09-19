@@ -184,10 +184,76 @@ curl "http://localhost:8080/ehr/status?mode=ok"
 
 ---
 
-## Reproducibility checklist (both incidents)
+## INC-03 — Database connectivity loss (FULL LIFECYCLE, 2026-09-19)
+
+### Failure
+
+Killed the single MongoDB container (stands in for DB host failure,
+network partition, or credential rotation gone wrong):
+
+```bash
+docker compose --env-file environments/dev.env kill db
+```
+
+### Detection
+
+- Immediate: `GET /ready` → `{"ready":false,"checks":{"db":"fail: getaddrinfo EAI_AGAIN db","queue":"ok"}}`
+  (fail-fast, HTTP 200 with `ready:false` — the pipeline health-gate contract).
+- `DBUnavailable` → **firing** ~1m (`mongodb_up==0 or up{job="mongodb"}==0`);
+  `ConfigFailure` (`api_ready==0 for 2m`) → pending at 83s, firing by ~2m.
+  Two independent signals — exporter liveness + logical readiness — agree.
+
+### Investigation
+
+- `api /ready` detail names the dependency (`db` fail, `queue` ok) — no
+  guessing which datastore is at fault.
+- Creates during outage return **503** (verified live) — fail loudly, never
+  silently drop. Queue stays intact; worker idles without crashing.
+- Prometheus `ALERTS{DBUnavailable|ConfigFailure}` is the detection evidence;
+  container `ps` shows `db` killed.
+
+### Root cause
+
+Database process absent (simulated host failure). Contributing design fact:
+single Mongo instance with no replica set — accepted Compose-scope boundary
+(`SPOF.md`), mitigated by named volume + backup/restore drill.
+
+### Recovery
+
+```bash
+docker compose --env-file environments/dev.env up -d db
+# /ready → {"ready":true,"checks":{"db":"ok","queue":"ok"}}
+# POST /appointments → 200 queued; queue_depth 0; SMOKE OK
+```
+
+Zero data repair: the named volume survived the kill; unacknowledged work
+resumed. Least-privilege users (`api_user`/`worker_user`) reconnected without
+credential changes.
+
+### Verification
+
+- `ALERTS{DBUnavailable|ConfigFailure}` → 0 active series (ALL RESOLVED).
+- `SMOKE OK` (`errors_total: 1` is the expected single 503 during the window —
+  evidence the fail-fast path engaged, not a regression).
+- Fresh appointment `queued` → drained to 0.
+
+### Prevention
+
+1. `DBUnavailable` + `ConfigFailure` alerts now cover detection (this incident
+   is the proof they fire and resolve).
+2. `backup-mongo.sh` (daily cron) + `backup-volumes.sh` (full state +
+   SHA256SUMS) + `full-recreate.sh` (`--drop` full-disaster variant) cover
+   data loss beyond process death.
+3. `POSTGRES-PLAN.md` documents the replica-set/PITR upgrade path
+   (DocumentDB/Atlas in real cloud) — the residual single-instance SPOF is
+   explicit, not hidden.
+
+## Reproducibility checklist (all three incidents)
 
 - [ ] Dev stack + monitoring up, queue at 0, note wall-clock start.
 - [ ] INC-01: `stop worker` → `workload.py 30` → poll queue + `ALERTS` → `up -d worker` → drain 0 → alerts clear → smoke.
 - [ ] INC-02: `EHR_MODE=unavailable up -d ehr-mock` → sustained creates (~4 min) → `EHROutage` fires → outcome mix + degraded count → `EHR_MODE=ok` recreate → ok outcomes resume → alert resolves → smoke.
+- [ ] INC-03: `kill db` → `/ready` false + 503 on create → `DBUnavailable` firing (~1m), `ConfigFailure` firing (~2m) → `up -d db` → `/ready` true → fresh create 200 → alerts resolve → smoke.
 - [ ] Expected timings: WorkerDown fires ~1.5 min after stop; QueueBacklog ~2.5 min;
-  EHROutage ~2 min after sustained non-ok ratio; resolution ≤ 6 min after recovery.
+  EHROutage ~2 min after sustained non-ok ratio; DBUnavailable ~1m, ConfigFailure ~2m;
+  resolution ≤ 6 min after recovery.

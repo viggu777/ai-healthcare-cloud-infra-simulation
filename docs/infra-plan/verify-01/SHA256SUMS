@@ -1,0 +1,5 @@
+9e5df6e4facc62498e8ef332e6ecaa1834f33f93a29d5e354d479ef4b2594dfb  docs/infra-plan/verify-01/compose-dev.yml
+04607c2dd48f8506667ee5f6d8dc648c21e6f9bf2b2abc6accab7278868581f3  docs/infra-plan/verify-01/compose-prod.yml
+73ef7f93530f16740b9acbcacd50f7af7ba28eccab8debe163416e32b18cdd51  docs/infra-plan/verify-01/services.txt
+d6829aa3eabb6dd1917d636461616d15a64ecd0d4b5593581537dfc33a1a73a3  docs/infra-plan/verify-01/terraform-lint.txt
+c8548636c5ce82390a9e19928fea041f4e7440aa1e604712fe2cbcca1bf5d982  docs/infra-plan/verify-01/volumes.txt

@@ -21,6 +21,7 @@ services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 
 [PASS] ai-service not attached to public net (['private'])
 [PASS] worker not attached to public net (['private'])
 [PASS] ehr-mock not attached to public net (['private'])
+[PASS] alert-logger not attached to public net (['private'])
 [PASS] gateway privileged!=true
 [PASS] gateway no host network/pid mode
 [PASS] gateway no extra cap_add (found [])
@@ -74,7 +75,9 @@ services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 
 [PASS] worker has no-new-privileges
 [PASS] ehr-mock has cap_drop ALL
 [PASS] ehr-mock has no-new-privileges
+[PASS] alert-logger has cap_drop ALL
+[PASS] alert-logger has no-new-privileges
 [WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
----- summary: 74 pass, 0 fail, 4 warn ----
+---- summary: 77 pass, 0 fail, 4 warn ----

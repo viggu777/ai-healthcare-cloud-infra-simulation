@@ -10,7 +10,7 @@ Foundation simulation environment:
 - Networks: `public` (gateway+api+grafana/nginx-exporter admin) and `private` (internal: true — all services; monitoring scrapes here)
 - Env separation without duplication: `docker-compose.yml` base + `environments/dev.env` / `prod.env`
 - Health/readiness/metrics on every service; smoke + workload + k6 scripts
-- Observability: Prometheus + Grafana (127.0.0.1:3000 dev / :3001 prod-like) + Alertmanager + Pushgateway + 3 exporters, 9 alert rules, 17-panel dashboard
+- Observability: Prometheus + Grafana (127.0.0.1:3000 dev / :3001 prod-like) + Alertmanager + Pushgateway + 3 exporters, 14 alert rules, 17-panel dashboard, 8 scrape targets (api/worker/ai-service/ehr-mock/nginx/redis/mongodb/pushgateway)
 
 ## Quickstart
 ```bash
@@ -45,8 +45,9 @@ Change `MONGO_PASSWORD` and `AI_API_KEY` before any shared use.
 
 ## Phases
 - Phase 1 (done): foundation above (re-validated after MERN port — see `docs/PHASE1-RESULTS.md`)
-- Phase 2 (done): hardening + security validation (non-root audit, Trivy, secret scan, infra lint) — `bash scripts/security-scan.sh` (26/0), report in `docs/SECURITY.md`
+- Phase 2 (done): hardening + security validation (non-root audit, Trivy, secret scan, infra lint) — `bash scripts/security-scan.sh` (32/0), report in `docs/SECURITY.md`
 - Phase 3 (done): DevSecOps pipeline + safe releases — `bash scripts/pipeline.sh` (executed) + `.github/workflows/pipeline.yml` (CI twin); digest pins, Trivy app-dep gate, SHA tags, rollback; demos in `docs/CICD.md`
-- Phase 4 (done): observability (Prometheus/Grafana/Alertmanager/exporters, 9 rules, dashboard) + k6 load/scaling measurements (`docs/RESILIENCE.md`) + 2 incident lifecycles (`docs/INCIDENTS.md`) + backup/restore drill + SPOF/cost/audit (`docs/SPOF.md`) — walkthrough in `docs/DEMO.md`
+- Phase 4 (done): observability (Prometheus/Grafana/Alertmanager/exporters, 14 rules, dashboard) + k6 load/scaling measurements (`docs/RESILIENCE.md`) + 3 incident lifecycles (`docs/INCIDENTS.md`) + backup/restore drill + SPOF/cost/audit (`docs/SPOF.md`) — walkthrough in `docs/DEMO.md`
+- Hardening add-ons: nginx dynamic DNS (API scale fix), ai-service/ehr-mock scrape + AIUnavailable/EHRMockDown/ConfigFailure/SaturationWarning alerts, per-service Mongo users + `check-outbound.sh`, `POSTGRES-PLAN.md`, `AI-USAGE.md`, autoscale/canary/log-bundle/volume-backup/secret-rotation scripts
 
 See `docs/TARGET_ARCHITECTURE.md`, `docs/MERN-MIGRATION.md`, `docs/CICD.md` and `docs/DEMO.md`.

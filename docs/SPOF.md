@@ -32,6 +32,10 @@ container-level resilience *within* that accepted boundary.
 | DeploymentFailed | critical | `pipeline_last_run_success==0` | Read run log in `docs/pipeline-evidence/`; fix gate; re-run |
 | SecurityScanFailed | critical | `security_scan_last_success==0` | Run scan locally; rotate/bump/fix; never allowlist |
 | EHROutage (bonus) | warning | non-ok EHR ratio > 20% 2 m | Outcome mix tells which; 401 first; see INC-02 |
+| AIUnavailable | warning | `up{job=ai-service}==0` 1 m | Restart ai-service; 401 spike = wrong key, not outage |
+| EHRMockDown | warning | `up{job/ehr-mock}==0` 1 m | Process down (vs EHROutage logical failure); recreate ehr-mock |
+| ConfigFailure | critical | `api_ready==0` 2 m | `/ready` detail names dep; fix env/creds; see INC-03 |
+| SaturationWarning | warning | depth > 50 or latency > 1 s 2 m | `docker stats`; scale via `autoscale.sh` |
 
 Firing history is queryable (`ALERTS` metric) and surfaced on the Grafana
 "Firing alerts" panel — QueueBacklog's first genuine cycle (pending → firing →

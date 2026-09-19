@@ -43,9 +43,21 @@ variable "grafana_port" {
 }
 
 variable "mongo_user" {
-  description = "MongoDB app username (placeholder)."
+  description = "MongoDB root/app username (placeholder)."
   type        = string
   default     = "app"
+}
+
+variable "mongo_api_user" {
+  description = "MongoDB least-privilege API user (readWrite on healthcare)."
+  type        = string
+  default     = "api_user"
+}
+
+variable "mongo_worker_user" {
+  description = "MongoDB least-privilege worker user (readWrite on healthcare)."
+  type        = string
+  default     = "worker_user"
 }
 
 variable "mongo_password" {

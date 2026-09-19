@@ -44,6 +44,7 @@ jobs:
           docker compose --env-file environments/dev.env config -q
           docker compose --env-file environments/prod.env config -q
           docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml config -q
+          bash scripts/infra-plan.sh --tag "${{ github.sha }}" --env-file environments/dev.env
       - name: unit tests
         run: node --test services/api/validate.test.js
       - name: dependency audit (npm audit per service, HIGH/CRITICAL gate)

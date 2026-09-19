@@ -139,7 +139,7 @@ def main():
     check(internal, "private network has internal:true")
 
     # 3. private-only services never on public net
-    for svc in ("db", "queue", "ai-service", "worker", "ehr-mock"):
+    for svc in ("db", "queue", "ai-service", "worker", "ehr-mock", "alert-logger"):
         if svc in services:
             check("public" not in services[svc]["networks"], f"{svc} not attached to public net ({services[svc]['networks']})")
 
@@ -150,7 +150,7 @@ def main():
         check(len(s["cap_add"]) == 0, f"{svc} no extra cap_add (found {s['cap_add']})")
 
     # 5. custom services hardened
-    for svc in ("api", "ai-service", "worker", "ehr-mock"):
+    for svc in ("api", "ai-service", "worker", "ehr-mock", "alert-logger"):
         if svc in services:
             check(services[svc]["cap_drop_all"], f"{svc} has cap_drop ALL")
             check(services[svc]["no_new_privs"], f"{svc} has no-new-privileges")

@@ -25,6 +25,16 @@ scrape_configs:
       - targets: ['worker:8003']
     metrics_path: /metrics/prom
 
+  - job_name: 'ai-service'
+    static_configs:
+      - targets: ['ai-service:8001']
+    metrics_path: /metrics/prom
+
+  - job_name: 'ehr-mock'
+    static_configs:
+      - targets: ['ehr-mock:8002']
+    metrics_path: /metrics/prom
+
   - job_name: 'nginx'
     static_configs:
       - targets: ['nginx-exporter:9113']
