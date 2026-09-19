@@ -26,14 +26,15 @@ lint → unit → security-scan.sh (as-is) → build (run-tagged)
 
 | Stage | Command | Gate? |
 |---|---|---|
-| lint | `node --check` on all 6 service sources + `compose config -q` (dev + prod-like) | Yes — any failure stops the run |
+| lint | `node --check` on all 7 service sources + `compose config -q` (dev + prod-like + prod resources override) | Yes — any failure stops the run |
 | unit | `node --test services/api/validate.test.js` (6 tests, zero deps) | Yes |
+| dependency audit | `npm audit --omit=dev --audit-level=high` per service (api, ai-service, worker, ehr-mock, alert-logger) | Yes — any HIGH/CRITICAL stops the run |
 | security | `bash scripts/security-scan.sh` (Gitleaks + Trivy report + compose-lint, 26/0) | Yes |
 | build | `APP_VERSION=<run-tag> compose build api ai-service worker ehr-mock` | Yes |
 | trivy gate | `bash scripts/trivy-gate.sh --tag <run-tag>` | **Yes — exit-code gate on app deps (see §3)** |
 | deploy dev | `APP_VERSION=<run-tag> compose --env-file environments/dev.env up -d` | Previous dev tag snapshotted first |
 | health gate dev | Poll `/ready` via gateway (default 120 s) → `smoke.sh` → `workload.py <gw> 10` | Yes — failure triggers rollback |
-| promote prod-like | Same deploy against `environments/prod.env` (:8081) | Previous prod-like tag snapshotted first |
+| promote prod-like | Same deploy against `environments/prod.env` (:8081) **layered with `docker-compose.prod.yml`** (P1.6: CPU/memory limits on the 5 Node services — the cost dial) | Previous prod-like tag snapshotted first |
 | post-promote check | Health gate + `smoke.sh` on :8081 | Yes — failure triggers rollback |
 
 There are intentionally **no `--skip` flags** for lint/unit/security: gates that can be skipped are not gates.

@@ -2,9 +2,11 @@
 # Phase 3 — DevSecOps pipeline (local runnable equivalent of .github/workflows/pipeline.yml).
 #
 # Stages, in order (mirrors TARGET_ARCHITECTURE §7 / docs/CICD.md):
-#   lint → unit → security (scripts/security-scan.sh AS-IS + scripts/trivy-gate.sh)
+#   lint → unit → dependency audit (npm audit per service, P1.6)
+#     → security (scripts/security-scan.sh AS-IS + scripts/trivy-gate.sh)
 #     → build (SHA-tagged) → deploy dev → health gate (/ready via gateway,
 #     scripts/smoke.sh is the baseline check) → workload → promote prod-like
+#     (with docker-compose.prod.yml resource limits, P1.6)
 #     → post-promote health check → rollback to previous tag on failure at any
 #     post-build stage.
 #
@@ -37,6 +39,9 @@ cd "$(dirname "$0")/.."
 export DOCKER_CONFIG="${DOCKER_CONFIG:-/tmp/docker-nocreds}"
 DEV_ENV="environments/dev.env"
 PROD_ENV="environments/prod.env"
+# P1.6: prod-like deploys layer docker-compose.prod.yml (resource limits, the
+# cost dial) over the base file. Dev deploys use the base file only.
+PROD_FILES="-f docker-compose.yml -f docker-compose.prod.yml"
 DEV_GW="http://localhost:8080"
 PROD_GW="http://localhost:8081"
 WORKLOAD_N="10"
@@ -109,12 +114,13 @@ health_gate() { # $1=gw-url $2=timeout-s $3=label
 }
 
 rollback() { # uses DEPLOYING_ENV_FILE / DEPLOYING_PREV_TAG
-  local env_file="$DEPLOYING_ENV_FILE" prev="$DEPLOYING_PREV_TAG" gw
-  if [ "$env_file" = "$DEV_ENV" ]; then gw="$DEV_GW"; else gw="$PROD_GW"; fi
+  local env_file="$DEPLOYING_ENV_FILE" prev="$DEPLOYING_PREV_TAG" gw files=""
+  if [ "$env_file" = "$DEV_ENV" ]; then gw="$DEV_GW"; else gw="$PROD_GW"; files="$PROD_FILES"; fi
   echo ""
   echo "!!!!! ROLLBACK ($env_file): stage '$STAGE' failed — restoring previous tag '${prev:-<none>}'"
   if [ -n "$prev" ]; then
-    APP_VERSION="$prev" docker compose --env-file "$env_file" up -d
+    # shellcheck disable=SC2086
+    APP_VERSION="$prev" docker compose --env-file "$env_file" $files up -d
     if health_gate "$gw" 60 "rollback-verify"; then
       echo "ROLLBACK OK: previous tag '$prev' serving again on $gw"
     else
@@ -185,11 +191,25 @@ for f in services/api/server.js services/api/validate.js services/api/validate.t
 done
 docker compose --env-file "$DEV_ENV" config -q || die "compose config invalid (dev)"
 docker compose --env-file "$PROD_ENV" config -q || die "compose config invalid (prod-like)"
-echo "  [lint-ok] compose config dev + prod-like"
+docker compose --env-file "$PROD_ENV" -f docker-compose.yml -f docker-compose.prod.yml config -q \
+  || die "compose prod override config invalid"
+echo "  [lint-ok] compose config dev + prod-like (+ prod resources override)"
 
 # ---- unit ----
 set_stage "unit"
 node --test services/api/validate.test.js || die "unit tests failed"
+
+# ---- dependency audit (P1.6): npm audit per service, HIGH/CRITICAL gate ----
+set_stage "dependency audit (npm audit --omit=dev)"
+for svc in api ai-service worker ehr-mock alert-logger; do
+  if [ -f "services/$svc/package-lock.json" ]; then
+    npm audit --omit=dev --audit-level=high --prefix "services/$svc" \
+      || die "npm audit found HIGH/CRITICAL in $svc"
+    echo "  [audit-ok] $svc (0 HIGH/CRITICAL)"
+  else
+    echo "  [audit-skip] $svc has no package-lock.json"
+  fi
+done
 
 # ---- security (existing gate AS-IS — never reimplemented) ----
 set_stage "security (security-scan.sh as-is)"
@@ -235,7 +255,8 @@ set_stage "promote prod-like"
 DEPLOYING_ENV_FILE="$PROD_ENV"
 DEPLOYING_PREV_TAG="$(current_tag "$PROD_ENV" api)"
 echo "previous prod-like tag: '${DEPLOYING_PREV_TAG:-<none>}'"
-APP_VERSION="$RUN_TAG" docker compose --env-file "$PROD_ENV" up -d || die "prod-like deploy failed"
+# shellcheck disable=SC2086
+APP_VERSION="$RUN_TAG" docker compose --env-file "$PROD_ENV" $PROD_FILES up -d || die "prod-like deploy failed"
 
 # ---- post-promote check ----
 set_stage "post-promote health check"

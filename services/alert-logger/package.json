@@ -1,0 +1,8 @@
+{
+  "name": "alert-logger",
+  "version": "0.1.0",
+  "description": "Local Alertmanager webhook sink (P1.4) — zero runtime dependencies",
+  "main": "server.js",
+  "license": "UNLICENSED",
+  "private": true
+}

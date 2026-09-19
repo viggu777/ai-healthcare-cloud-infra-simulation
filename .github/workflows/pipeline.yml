@@ -44,8 +44,14 @@ jobs:
           bash scripts/gen-gateway-cert.sh
           docker compose --env-file environments/dev.env config -q
           docker compose --env-file environments/prod.env config -q
+          docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml config -q
       - name: unit tests
         run: node --test services/api/validate.test.js
+      - name: dependency audit (npm audit per service, HIGH/CRITICAL gate)
+        run: |
+          for svc in api ai-service worker ehr-mock alert-logger; do
+            npm audit --omit=dev --audit-level=high --prefix "services/$svc" && echo "  [audit-ok] $svc"
+          done
 
   security:
     runs-on: ubuntu-latest
@@ -96,7 +102,7 @@ jobs:
           exit 1
       - name: promote prod-like
         if: success()
-        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env up -d
+        run: APP_VERSION="${{ github.sha }}" docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d
       - name: post-promote health check
         if: success()
         run: GATEWAY_URL=http://localhost:8081 bash scripts/smoke.sh
@@ -105,7 +111,7 @@ jobs:
         run: |
           printf 'pipeline_last_run_success 0\npipeline_last_run_timestamp_seconds %s\nsecurity_scan_last_success 1\n' "$(date +%s)" | docker compose --env-file environments/dev.env exec -i api node -e "let b='';process.stdin.on('data',d=>b+=d).on('end',()=>{fetch('http://pushgateway:9091/metrics/job/pipeline/instance/${{ github.sha }}',{method:'PUT',headers:{'Content-Type':'text/plain'},body:b}).catch(()=>{})});" || true
           if [ -n "${{ env.PREV_PROD }}" ]; then
-            APP_VERSION="${{ env.PREV_PROD }}" docker compose --env-file environments/prod.env up -d
+            APP_VERSION="${{ env.PREV_PROD }}" docker compose --env-file environments/prod.env -f docker-compose.yml -f docker-compose.prod.yml up -d
           else
             docker compose --env-file environments/prod.env down
           fi

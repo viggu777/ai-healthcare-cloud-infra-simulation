@@ -1,0 +1,38 @@
+# P1.6 — prod-like resource limits (the "cost dial" from §14 cost-awareness).
+# Applied ONLY to prod-like deploys via `-f docker-compose.yml -f
+# docker-compose.prod.yml` (pipeline promote stage, and manual
+# `docker compose --env-file environments/prod.env -f ... up -d`).
+# Dev stays unbounded for iteration speed. Values cap the horizontally
+# scalable Node services; datastores/exporters keep their defaults
+# (documented, not forgotten).
+services:
+  api:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+  ai-service:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+  worker:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 512M
+  ehr-mock:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+  alert-logger:
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M

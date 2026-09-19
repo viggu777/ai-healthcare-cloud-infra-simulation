@@ -246,7 +246,7 @@ Mapped directly to PDF §9–§11.
 - **Network isolation:** Enforced via the `public`/`internal` Docker network split with `internal: true`, as detailed in §4.
 - **Image scanning:** Trivy scans all built images in CI (Phase 2/3) for known CVEs. Phase 3 split the verdict: HIGH/CRITICAL findings in **app dependencies** (`lang-pkgs`: express, mongodb, ioredis) **block** the pipeline via `scripts/trivy-gate.sh`; the Debian OS-layer findings (52 HIGH / 4 CRITICAL, no upstream fix — accepted baseline, `docs/SECURITY.md` R1) are reported but non-blocking. Base images are digest-pinned (Phase 3, closes R5).
 - **Secret scanning:** Gitleaks runs against the repository and CI diffs; a discovered secret blocks the pipeline (demonstrated with a seeded fake key in Phase 3 — `docs/CICD.md` §7).
-- **Dependency/security scanning:** `npm audit` (or equivalent) integrated as an additional lint/test-stage check; Trivy also covers OS-level and dependency-level image vulnerabilities.
+- **Dependency/security scanning:** `npm audit --omit=dev --audit-level=high` per service as a pipeline stage (P1.6 — HIGH/CRITICAL gate); Trivy also covers OS-level and dependency-level image vulnerabilities.
 - **CI/CD security gates:** Secret scan and image scan are non-optional stages positioned **before** deploy; a failure at either stage halts the pipeline — this is the PDF §12 "at least one meaningful security failure must be demonstrated" requirement.
 - **Deployment protection:** Health-gated promotion (§7) — an unhealthy new version never replaces a healthy running version.
 - **Auditability:** Git commit SHA + image tag = deployed version; CI run logs record who/what triggered a deploy, which checks ran and their results, and whether promotion occurred — satisfying PDF §21 without needing a real IAM system (documented as a simulated-equivalent in Phase 1 results already).
@@ -258,7 +258,8 @@ Mapped directly to PDF §9–§11.
 ```mermaid
 flowchart LR
     A[Push / PR] --> B[Lint]
-    B --> C[Unit Tests]
+    B --> B2[npm audit<br/>per service — GATE]
+    B2 --> C[Unit Tests]
     C --> D[Gitleaks<br/>secret scan]
     D --> E[Build Images]
     E --> F[Trivy<br/>vuln scan — GATE]
@@ -325,11 +326,11 @@ This satisfies PDF §16 (logging, metrics, health checks, operational dashboard)
 
 | Aspect | Development | Production-like |
 |---|---|---|
-| Compose file | Single `docker-compose.yml` (no per-env override files) | Same base file |
+| Compose file | Single `docker-compose.yml` + `docker-compose.prod.yml` resources override (prod-like only, P1.6) | Same base file (+ override in prod-like) |
 | Host port | 8080 | 8081 |
 | Env file | `environments/dev.env` | `environments/prod.env` |
 | Credentials | Dev-only Mongo/Redis creds | Separate prod-like creds (still local/simulated, never shared with dev) |
-| Resource limits | Loose/none | Defined CPU/memory limits (cost-awareness demo, §14) |
+| Resource limits | Loose/none | `deploy.resources` CPU/memory limits on the 5 Node services via `docker-compose.prod.yml` (P1.6 — the cost dial) |
 | Log verbosity | Verbose/debug | Info/warn |
 | Scale defaults | 1 replica each (scale via `--scale api=N --scale worker=N`) | 1 replica each (same flags; prod-like differs by env values + `WORKER_CONCURRENCY=4`, not replica count) |
 
