@@ -10,16 +10,26 @@ Foundation simulation environment:
 - Networks: `public` (gateway+api+grafana/nginx-exporter admin) and `private` (internal: true — all services; monitoring scrapes here)
 - Env separation without duplication: `docker-compose.yml` base + `environments/dev.env` / `prod.env`
 - Health/readiness/metrics on every service; smoke + workload + k6 scripts
-- Observability: Prometheus + Grafana (127.0.0.1:3000 dev / :3001 prod-like) + Alertmanager + Pushgateway + 3 exporters, 14 alert rules, 17-panel dashboard, 8 scrape targets (api/worker/ai-service/ehr-mock/nginx/redis/mongodb/pushgateway)
+- Observability: Prometheus + Grafana (127.0.0.1:3000 dev / :3001 prod-like) + Alertmanager + Pushgateway + 3 exporters, 14 alert rules, 19-panel dashboard, 8 scrape targets (api/worker/ai-service/ehr-mock/nginx/redis/mongodb/pushgateway)
 
-## Quickstart
+## Quickstart (fresh clone — automated pipeline uses this exact sequence)
 ```bash
+git clone https://github.com/viggu777/ai-healthcare-cloud-infra-simulation.git
+cd ai-healthcare-cloud-infra-simulation
+bash scripts/gen-gateway-cert.sh   # gateway/tls/ is git-ignored by design; required before first up
 docker compose --env-file environments/dev.env up --build -d
 bash scripts/smoke.sh
 python3 scripts/workload.py http://localhost:8080 20
 docker compose --env-file environments/dev.env ps
 docker compose --env-file environments/dev.env logs --tail=50
 ```
+
+Full one-command verification (all gates + machine-readable JSON):
+```bash
+bash scripts/evaluate.sh                   # exits 0 iff every check passes
+bash scripts/evaluate.sh --output result.json
+```
+Requirement-by-requirement map: `docs/EVALUATION.md`.
 
 Independent scaling:
 ```bash

@@ -9,7 +9,7 @@ Status: **Done** (healthy rollout + security-blocked release + unhealthy-rollbac
 
 | Artifact | Role | Executed? |
 |---|---|---|
-| `.github/workflows/pipeline.yml` | CI definition: runs on push/PR/`workflow_dispatch` with `github.sha` tags against two ephemeral Compose projects on the runner | **Yes — green on a connected clone (P1.7): [Actions run 35449680652](https://github.com/viggu777/ai-healthcare-cloud-infra-simulation/actions/runs/35449680652)** (private repo `viggu777/ai-healthcare-cloud-infra-simulation`, `main`, 3m47s: lint → audit → security → build → Trivy gate → deploy dev → health gate → promote prod-like) |
+| `.github/workflows/pipeline.yml` | CI definition: runs on push/PR/`workflow_dispatch` with `github.sha` tags against two ephemeral Compose projects on the runner | **Yes — green on a connected clone (P1.7): [Actions run 35449680652](https://github.com/viggu777/ai-healthcare-cloud-infra-simulation/actions/runs/35449680652)** (public repo `viggu777/ai-healthcare-cloud-infra-simulation`, `main`, 3m47s: lint → audit → security → build → Trivy gate → deploy dev → health gate → promote prod-like) |
 | `scripts/pipeline.sh` | Local runnable equivalent: identical stage order, identical gates, identical rollback semantics against the same Compose files on the Ubuntu host | **Yes — all three demonstrations below ran through this script** |
 
 No stages were reimplemented: the pipeline calls `scripts/security-scan.sh` as-is and

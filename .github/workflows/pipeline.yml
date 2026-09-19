@@ -8,7 +8,7 @@
 #
 # Execution note (docs/CICD.md): BOTH artifacts are demonstrated. The local
 # scripts/pipeline.sh runs are logged in docs/pipeline-evidence/, and this
-# workflow is green on a connected clone (private repo, push to main —
+# workflow is green on a connected clone (public repo, push to main —
 # P1.7, run linked in docs/CICD.md §1). It runs the full pipeline against two
 # ephemeral Compose projects on the runner (dev on :8080, prod-like on :8081).
 name: pipeline
