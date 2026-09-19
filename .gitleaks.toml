@@ -1,0 +1,16 @@
+# Gitleaks allowlist — documented false positives only (each entry explains why
+# the match cannot be a credential; see docs/SECURITY.md §10).
+#
+# 1. scripts/rotate-secrets.sh / curl-auth-user: the flagged text is a shell
+#    *variable reference* (`"$ADB_USER"`, previously `"${MONGO_USER:-app}"`)
+#    passed to `mongosh --username/--password`. No username, password, token,
+#    or hash appears literally anywhere in the file — values arrive at runtime
+#    from the env file. The curl-auth-user regex fires on the `-u/--username
+#    "$VAR"` shape regardless of content, so the path+rule pair is allowlisted.
+#    A genuinely hardcoded credential in this file would still trip the
+#    generic-api-key / high-entropy rules, which are NOT allowlisted here.
+
+[[allowlists]]
+description = "rotate-secrets.sh passes credentials via env-var references, never literals"
+paths = ['scripts/rotate-secrets\.sh']
+rules = ['curl-auth-user']

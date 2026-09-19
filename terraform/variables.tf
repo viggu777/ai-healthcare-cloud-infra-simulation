@@ -60,6 +60,12 @@ variable "mongo_worker_user" {
   default     = "worker_user"
 }
 
+variable "mongo_monitor_user" {
+  description = "MongoDB monitoring user for mongodb-exporter (clusterMonitor on admin, no app-data access)."
+  type        = string
+  default     = "monitor_user"
+}
+
 variable "mongo_password" {
   description = "MongoDB app password (placeholder — sensitive)."
   type        = string

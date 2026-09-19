@@ -77,6 +77,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
     logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - public
       - private
@@ -106,6 +109,9 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - private
     environment:
@@ -132,6 +138,9 @@ services:
         condition: service_healthy
     restart: unless-stopped
     logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - private
     environment:
@@ -205,6 +214,9 @@ services:
       - no-new-privileges:true
     restart: unless-stopped
     logging: *default-logging
+    read_only: true
+    tmpfs:
+      - /tmp
     networks:
       - private
     environment:
@@ -366,7 +378,11 @@ services:
     networks:
       - private
     environment:
-      MONGODB_URI: mongodb://${MONGO_USER:-app}:${MONGO_PASSWORD:-app_secret_change_me}@db:27017/admin?authSource=admin
+      # Round-2 least-privilege: exporter authenticates as monitor_user
+      # (clusterMonitor on admin: serverStatus/top metrics, zero app-data
+      # access) instead of the root/app credential. Users come from
+      # db/mongo-init.js (fresh volumes) or scripts/create-db-users.sh.
+      MONGODB_URI: mongodb://${MONGO_MONITOR_USER:-monitor_user}:${MONGO_MONITOR_PASSWORD:-monitor_only_change_me}@db:27017/admin?authSource=admin
     depends_on:
       db:
         condition: service_healthy

@@ -111,6 +111,9 @@ rm -f "$EVIDENCE_DIR/gitleaks.txt"
 # P0.1: repo now has git history — prefer git mode (scans tracked diffs +
 # history); fall back to --no-git only outside a checkout.
 GITLEAKS_ARGS="detect --source=/repo -v"
+# Documented false positives live in .gitleaks.toml (SECURITY.md §10); pass it
+# explicitly because gitleaks does not auto-discover config under --source.
+if [ -f .gitleaks.toml ]; then GITLEAKS_ARGS="$GITLEAKS_ARGS --config /repo/.gitleaks.toml"; fi
 if [ -d .git ]; then
   echo "  (git mode: .git present)"
 else

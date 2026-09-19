@@ -47,6 +47,19 @@ ingress in cloud. Until then: scale the *workers* (proven linear above), not
 the API — and treat `--scale api=N` as validated-but-ineffective, exactly as
 flagged since Phase 1 (`docs/TARGET_ARCHITECTURE.md` §14).
 
+**2026-09-19 re-test after partial remediation** (`resolver 127.0.0.11 valid=10s`
++ variable `proxy_pass` + `proxy_next_upstream`, commit `c744877`): with
+`--scale api=2`, two consecutive batches of 20 × `POST /appointments` via the
+gateway distributed **44 → replica-1, 0 → replica-2** (per-replica
+`api_requests_total`; `POST` is the only route that increments the counter —
+`GET /metrics/prom` does not). Docker DNS itself rotates (`getent hosts api`
+returned `.3` then `.6` on successive queries), but nginx OSS caches one IP per
+10 s window, so every request inside the window pins to one replica. Improvement
+over startup-pin: rescheduled/recreated `api` containers are picked up within
+~10 s with no gateway reload, and 502/503 fails over via
+`proxy_next_upstream`. Per-request round-robin remains future work (real
+ingress); the guidance stands — scale workers, not the API.
+
 ## 5. Resource usage (measured, `docs/load-evidence/docker-stats-load.txt`)
 
 | Container | CPU (during load) | Memory |

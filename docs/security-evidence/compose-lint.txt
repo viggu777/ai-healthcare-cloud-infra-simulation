@@ -77,7 +77,11 @@ services inspected: ['ai-service', 'alert-logger', 'alertmanager', 'api', 'db', 
 [PASS] ehr-mock has no-new-privileges
 [PASS] alert-logger has cap_drop ALL
 [PASS] alert-logger has no-new-privileges
+[PASS] api has read-only root filesystem
+[PASS] ai-service has read-only root filesystem
+[PASS] worker has read-only root filesystem
+[PASS] ehr-mock has read-only root filesystem
 [WARN] gateway without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] db without cap_drop ALL (documented exception, see docs/SECURITY.md)
 [WARN] queue without cap_drop ALL (documented exception, see docs/SECURITY.md)
----- summary: 77 pass, 0 fail, 4 warn ----
+---- summary: 81 pass, 0 fail, 4 warn ----

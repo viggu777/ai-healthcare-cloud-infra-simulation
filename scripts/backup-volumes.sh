@@ -3,12 +3,12 @@
 # Mongo holds app state; queue-data (AOF), prometheus-data, grafana-data hold
 # buffer/monitoring state an operator needs after host loss. Each artifact gets
 # a SHA256SUMS so restores are integrity-verified, not assumed.
-# Usage: bash scripts/backup-volumes.sh [--env-file environments/dev.env] [--out backups/state-<ts>]
+# Usage: bash scripts/backup-volumes.sh [--env-file environments/dev.env] [--out backups/state-<ts>] [--keep N]
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export DOCKER_CONFIG="${DOCKER_CONFIG:-/tmp/docker-nocreds}"
-ENV_FILE="environments/dev.env"; OUT=""
-while [ $# -gt 0 ]; do case "$1" in --env-file=*) ENV_FILE="${1#*=}"; shift;; --env-file) ENV_FILE="$2"; shift 2;; --out=*) OUT="${1#*=}"; shift;; --out) OUT="$2"; shift 2;; *) shift;; esac; done
+ENV_FILE="environments/dev.env"; OUT=""; KEEP=7
+while [ $# -gt 0 ]; do case "$1" in --env-file=*) ENV_FILE="${1#*=}"; shift;; --env-file) ENV_FILE="$2"; shift 2;; --out=*) OUT="${1#*=}"; shift;; --out) OUT="$2"; shift 2;; --keep=*) KEEP="${1#*=}"; shift;; --keep) KEEP="$2"; shift 2;; *) shift;; esac; done
 # shellcheck disable=SC1090
 set -a; . "$ENV_FILE"; set +a
 PROJECT="${COMPOSE_PROJECT_NAME:-ai-healthcare-sim}"
@@ -31,4 +31,10 @@ docker run --rm --user root -v "$(pwd)/$OUT:/d" --entrypoint chmod \
   -R a+r /d 2>/dev/null || true
 (cd "$OUT" && sha256sum $(find . -type f ! -name SHA256SUMS | sort) >SHA256SUMS)
 cat "$OUT/SHA256SUMS"
+# Retention: keep the newest $KEEP state-* dirs (same --keep semantics as
+# backup-mongo.sh) so a future cron promotion cannot fill the disk.
+if [ "$KEEP" -gt 0 ]; then
+  ls -dt backups/state-* 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -rf
+  echo "  retention: newest $KEEP state-* kept ($(ls -d backups/state-* 2>/dev/null | wc -l) present)"
+fi
 echo "STATE-BACKUP OK: $OUT (verify: sha256sum -c $OUT/SHA256SUMS)"

@@ -89,7 +89,7 @@ resource "terraform_data" "db" {
     networks = [terraform_data.network_private.id]
     ports    = []
     depends  = []
-    notes    = "MongoDB 7, named volume, db/mongo-init.js. User=${var.mongo_user} db=${var.mongo_db}."
+    notes    = "MongoDB 7, named volume, db/mongo-init.js. Root=${var.mongo_user} api=${var.mongo_api_user} worker=${var.mongo_worker_user} monitor=${var.mongo_monitor_user} db=${var.mongo_db}."
   }
 }
 
@@ -160,7 +160,7 @@ resource "terraform_data" "mongodb_exporter" {
     networks = [terraform_data.network_private.id]
     ports    = []
     depends  = ["db"]
-    notes    = "No shell in image (P1.3) — watched via up{job=mongodb} + DBUnavailable."
+    notes    = "No shell in image (P1.3) — watched via up{job=mongodb} + DBUnavailable. Authenticates as ${var.mongo_monitor_user} (clusterMonitor, no app-data access)."
   }
 }
 

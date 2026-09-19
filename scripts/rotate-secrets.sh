@@ -19,14 +19,16 @@ set -a; . "$ENV_FILE"; set +a
 NEW="$(openssl rand -hex 12)"
 case "$WHICH" in
   mongo-api)
-    docker compose --env-file "$ENV_FILE" exec -T db mongosh --quiet -u "${MONGO_USER:-app}" -p "${MONGO_PASSWORD:-x}" --authenticationDatabase admin \
+    ADB_USER="${MONGO_USER:-app}"; ADB_PASS="${MONGO_PASSWORD:-x}"
+    docker compose --env-file "$ENV_FILE" exec -T db mongosh --quiet --username "$ADB_USER" --password "$ADB_PASS" --authenticationDatabase admin \
       --eval "db.getSiblingDB('healthcare').changeUserPassword('${MONGO_API_USER:-api_user}','$NEW')" >/dev/null
     sed -i "s/^MONGO_API_PASSWORD=.*/MONGO_API_PASSWORD=$NEW/" "$ENV_FILE"
     docker compose --env-file "$ENV_FILE" up -d api >/dev/null; sleep 8
     curl -fsS "${GW:-http://localhost:8080}/ready" >/dev/null 2>&1 || curl -fsS http://localhost:8080/ready >/dev/null
     echo "ROTATED mongo-api in $ENV_FILE (api restarted only, /ready true)";;
   mongo-worker)
-    docker compose --env-file "$ENV_FILE" exec -T db mongosh --quiet -u "${MONGO_USER:-app}" -p "${MONGO_PASSWORD:-x}" --authenticationDatabase admin \
+    ADB_USER="${MONGO_USER:-app}"; ADB_PASS="${MONGO_PASSWORD:-x}"
+    docker compose --env-file "$ENV_FILE" exec -T db mongosh --quiet --username "$ADB_USER" --password "$ADB_PASS" --authenticationDatabase admin \
       --eval "db.getSiblingDB('healthcare').changeUserPassword('${MONGO_WORKER_USER:-worker_user}','$NEW')" >/dev/null
     sed -i "s/^MONGO_WORKER_PASSWORD=.*/MONGO_WORKER_PASSWORD=$NEW/" "$ENV_FILE"
     docker compose --env-file "$ENV_FILE" up -d worker >/dev/null; sleep 8

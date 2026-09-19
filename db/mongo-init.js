@@ -26,3 +26,12 @@ try {
   });
   print('mongo-init: worker_user created (readWrite on healthcare)');
 } catch (e) { print('mongo-init: worker_user exists, skipping: ' + e.message); }
+// Monitoring user for mongodb-exporter (round-2): clusterMonitor on admin can
+// read serverStatus/replSetGetStatus/top but cannot read or write app data.
+try {
+  db.getSiblingDB('admin').createUser({
+    user: 'monitor_user', pwd: 'monitor_only_change_me',
+    roles: [{ role: 'clusterMonitor', db: 'admin' }],
+  });
+  print('mongo-init: monitor_user created (clusterMonitor on admin)');
+} catch (e) { print('mongo-init: monitor_user exists, skipping: ' + e.message); }

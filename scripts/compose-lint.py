@@ -8,9 +8,10 @@ Checks (fail = security gate violation):
   FAIL if db/queue/ehr/ai-service/worker is attached to `public` net.
   FAIL if any service uses privileged:true, unsafe cap_add (SYS_ADMIN, NET_ADMIN, DAC_OVERRIDE...), or host network/pid/ipc.
   FAIL if a custom-build service (api/ai-service/worker/ehr-mock) lacks cap_drop ALL or no-new-privileges.
+  FAIL if a Node service (api/ai-service/worker/ehr-mock) lacks read_only root FS.
 Warn-only (reported, not failing): gateway + db without cap_drop (documented exceptions),
   host-local 127.0.0.1 admin ports (documented exception),
-  unpinned images (:latest), read_only absent (future work).
+  unpinned images (:latest).
 Writes human-readable report to --evidence file and stdout; exits 1 on FAIL.
 """
 import argparse
@@ -65,6 +66,7 @@ def parse_compose_minimal(path):
             "cap_drop_all": "cap_drop:" in raw and "- ALL" in raw,
             "no_new_privs": "no-new-privileges:true" in raw,
             "cap_add": re.findall(r"-\s*(SYS_ADMIN|NET_ADMIN|SYS_PTRACE|DAC_[A-Z_]+|ALL)", raw),
+            "read_only": "read_only: true" in raw,
             "host_mode": ("network_mode:" in raw and "host" in raw) or ("pid: host" in raw),
             "image": (re.search(r"image:\s*(\S+)", raw).group(1) if re.search(r"image:\s*(\S+)", raw) else ""),
             "raw": raw,
@@ -113,6 +115,7 @@ def main():
                     "cap_drop_all": "ALL" in (cfg.get("cap_drop") or []),
                     "no_new_privs": any("no-new-privileges" in str(x) for x in (cfg.get("security_opt") or [])),
                     "cap_add": list(cfg.get("cap_add") or []),
+                    "read_only": bool(cfg.get("read_only")),
                     "host_mode": str(cfg.get("network_mode", "")) == "host" or str(cfg.get("pid", "")) == "host",
                     "image": str(cfg.get("image", "")),
                     "raw": str(cfg),
@@ -154,6 +157,10 @@ def main():
         if svc in services:
             check(services[svc]["cap_drop_all"], f"{svc} has cap_drop ALL")
             check(services[svc]["no_new_privs"], f"{svc} has no-new-privileges")
+    # 5b. Node services run read-only root FS (writable /tmp via tmpfs)
+    for svc in ("api", "ai-service", "worker", "ehr-mock"):
+        if svc in services:
+            check(services[svc]["read_only"], f"{svc} has read-only root filesystem")
 
     # warn-only documented exceptions
     for svc in ("gateway", "db", "queue"):

@@ -13,7 +13,7 @@ below, then mapped to AWS list prices (eu-central-1, Sep 2026, on-demand).
 | queue (redis) | ~7 MB | 58 MB | burst buffer (302 jobs banked without API slowdown) |
 | db (mongo) | ~99 MB | 1.18 GB | all persistent state |
 | prometheus | ~44 MB | 440 MB | 7d/1GB retention (bounded) |
-| grafana | ~75 MB | 873 MB | 17-panel dashboard (dominant disk cost) |
+| grafana | ~75 MB | 873 MB | 19-panel dashboard (dominant disk cost) |
 | exporters ×3 + pushgateway + alertmanager | <30 MB | ~150 MB | per-component telemetry |
 
 Dev total idles <400 MB; monitoring adds ~150 MB RAM but ~1.5 GB disk.

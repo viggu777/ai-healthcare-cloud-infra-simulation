@@ -36,7 +36,7 @@ curl -s http://localhost:8080/metrics | head -c 300
   Outbound proof: `bash scripts/check-outbound.sh` → 6/0 (no internet route,
   controlled internal paths, sole ingress).
 - Observability: open `http://127.0.0.1:3000` (admin/dev_only_change_me) —
-  "AI Healthcare Sim — Overview": API/worker/queue/DB/EHR/deployment panels;
+  "AI Healthcare Sim — Overview": API/worker/queue/DB/EHR/AI-inference/EHR-mock/deployment panels;
   Prometheus targets: `docker exec ai-healthcare-dev-prometheus-1 wget -qO- http://localhost:9090/api/v1/targets?state=active`
   (8/8 up: api/worker/ai-service/ehr-mock/nginx/redis/mongodb/pushgateway); rules (`.../api/v1/rules`): 14 loaded.
 
@@ -94,9 +94,9 @@ source-safe: the demo restores `services/api/server.js` byte-identical.)
 2. **EHR `slow` = 2 s, not 3 s**: Node timers always lose a 3000-vs-3000 ms race,
    collapsing `slow` into `timeout`; 2 s preserves the slow→200 contract.
    `docs/MERN-MIGRATION.md`.
-3. **Nginx static upstream DNS**: scaling `api=2` sends 60/60 requests to one
-   replica (measured, `docs/RESILIENCE.md` §4). Scale workers instead (linear,
-   measured 2.2×).
+3. **Nginx upstream DNS**: scaling `api=2` pins to one replica per 10 s DNS
+   window (60/60 at startup-pin, 44/0 after `resolver` remediation — measured,
+   `docs/RESILIENCE.md` §4). Scale workers instead (linear, measured 2.2×).
 4. **Single host, no IAM, no autoscaler, discard-webhook paging**: accepted
    simulation boundaries, each with its real-cloud mapping in §14/SPOF.
 5. **No frontend / real AI / real EHR / real data / real cloud**: permanently out

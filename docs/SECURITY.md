@@ -103,6 +103,26 @@ Phase 2 only. No Phase 3 pipeline/rollback work started; database engine unchang
 - Gitleaks runs in **git mode** since P0.1 (was `--no-git` before git history
   existed); clean, including `terraform/*.tfvars` placeholders (R4 posture)
   and the git-ignored `gateway/tls/` keypair, which never enters history.
-- `compose-lint.py` unchanged and still passing (currently 74 pass / 0 fail /
-  4 warn, up from 70 with the 15th service; the 32/0 RESULT line counts
-  gates).
+- `compose-lint.py` passing (currently 81 pass / 0 fail / 4 warn: 77 + 4 new
+  read-only-root-FS assertions for the Node services; the 32/0 RESULT line
+  counts gates).
+- Gitleaks `curl-auth-user` finding on `scripts/rotate-secrets.sh` (first seen
+  in commit `c744877`, git-mode history scan): **false positive** — the match
+  is a shell *variable reference* (`"$ADB_USER"`, long `--username` form since
+  the round-2 fix), never a literal credential. Allowlisted by path+rule in
+  `.gitleaks.toml` (wired via `--config` in `security-scan.sh`); generic
+   high-entropy rules remain active on the file. Post-fix gate: **32/0 PASS**.
+- Exporter least-privilege (round-2): `mongodb-exporter` now authenticates as
+  `monitor_user` (`clusterMonitor` on `admin`) instead of the root credential
+  (`db/mongo-init.js` + `scripts/create-db-users.sh` + compose URI). Verified
+  live 2026-09-19: `up{job="mongodb"}==1`, `mongodb_up==1`, and a negative
+  probe (`find` on `healthcare.appointments` as `monitor_user`) is refused
+  with `not authorized`. Root remains only in `db` init + rotation scripts.
+- Read-only root filesystem (round-2): `api`, `worker`, `ai-service`,
+  `ehr-mock` run with `read_only: true` + writable `tmpfs` on `/tmp`.
+  Evaluated live before enforcing (throwaway container: `/health` OK,
+  `POST /appointments` 200, `touch /app` refused, `touch /tmp` OK), then
+  rolled to both envs (all healthy, `SMOKE OK`) and asserted by 4 new
+  `compose-lint.py` checks (81 pass total). Base images stay `node:22-slim`
+  pinned by digest; distroless noted as future work with no stub-status
+  regression risk taken now.

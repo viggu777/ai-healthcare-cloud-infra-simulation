@@ -11,7 +11,9 @@ materially contributed vs. where engineering judgment was human-verified.
   networks (recorded in `SPOF.md §4b`).
 - **Implementation**: AI suggested nginx `resolver + variable proxy_pass`
   for the static-DNS skew (`RESILIENCE.md §4`); human verified with
-  `nginx -t`, gateway reload, and live `/health` probes.
+  `nginx -t`, gateway reload, live `/health` probes, and a 40-request
+  `--scale api=2` re-test that showed window-pinning (44/0) — so the log
+  records a *partial* remediation with measured limits, not a full fix.
 - **Troubleshooting**: AI proposed the Gitleaks self-contamination theory
   (stale `-v` report re-tripping scans); human confirmed via log diff and
   fixed with pre-scan deletion in `security-scan.sh`.

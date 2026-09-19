@@ -13,6 +13,7 @@ for a in "$@"; do case "$a" in --env-file=*) ENV_FILE="${a#*=}";; --env-file) EN
 set -a; . "$ENV_FILE"; set +a
 API_U="${MONGO_API_USER:-api_user}"; API_P="${MONGO_API_PASSWORD:-api_only_change_me}"
 WRK_U="${MONGO_WORKER_USER:-worker_user}"; WRK_P="${MONGO_WORKER_PASSWORD:-worker_only_change_me}"
+MON_U="${MONGO_MONITOR_USER:-monitor_user}"; MON_P="${MONGO_MONITOR_PASSWORD:-monitor_only_change_me}"
 echo "creating least-privilege users on $COMPOSE_PROJECT_NAME (root: ${MONGO_USER:-app})"
 docker compose --env-file "$ENV_FILE" exec -T db mongosh --quiet \
   -u "${MONGO_USER:-app}" -p "${MONGO_PASSWORD:-app_secret_change_me}" --authenticationDatabase admin \
@@ -21,6 +22,8 @@ try { db.getSiblingDB('healthcare').createUser({user:'$API_U',pwd:'$API_P',roles
 catch(e){ print('api_user: '+e.message.split('\n')[0]); }
 try { db.getSiblingDB('healthcare').createUser({user:'$WRK_U',pwd:'$WRK_P',roles:[{role:'readWrite',db:'healthcare'}]}); print('worker_user created'); }
 catch(e){ print('worker_user: '+e.message.split('\n')[0]); }
-print('users done (api_user, worker_user ensured)');
+try { db.getSiblingDB('admin').createUser({user:'$MON_U',pwd:'$MON_P',roles:[{role:'clusterMonitor',db:'admin'}]}); print('monitor_user created'); }
+catch(e){ print('monitor_user: '+e.message.split('\n')[0]); }
+print('users done (api_user, worker_user, monitor_user ensured)');
 " 2>&1 | grep -v "^$"
 echo "DB-USERS OK (verify: api/worker /ready still true after compose switch)"
