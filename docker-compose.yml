@@ -223,6 +223,13 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./monitoring/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
+    # P1.3: container healthcheck (/-/healthy; generous start window for WAL replay).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9090/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   alertmanager:
     # Phase 4: pinned by digest (see gateway note).
@@ -236,6 +243,13 @@ services:
       - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
     depends_on:
       - prometheus
+    # P1.3: container healthcheck.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9093/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   pushgateway:
     # Phase 4: pinned by digest (see gateway note). Receives pipeline/security
@@ -245,6 +259,13 @@ services:
     restart: unless-stopped
     networks:
       - private
+    # P1.3: container healthcheck.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9091/-/healthy || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
 
   grafana:
     # Phase 4: pinned by digest (see gateway note).
@@ -270,9 +291,21 @@ services:
       - grafana-data:/var/lib/grafana
     depends_on:
       - prometheus
+    # P1.3: container healthcheck (auth-exempt /api/health; long start window —
+    # Grafana boots plugins/provisioning before serving).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 45s
 
   redis-exporter:
     # Phase 4: pinned by digest (see gateway note).
+    # P1.3: NO container healthcheck by design — this image is scratch-based
+    # (no shell, no wget/curl to probe with; a CMD probe would always lie).
+    # Its health signal is Prometheus `up{job="redis"} == 0` + the ExporterDown
+    # alert (monitoring/alerts.yml), which is the only honest sensor here.
     image: oliver006/redis_exporter:v1.68.0@sha256:e7e96895407ae28cf28dc97c73c9cd958c5adb4746120e2664569393436c1bd0
     restart: unless-stopped
     networks:
@@ -285,6 +318,8 @@ services:
 
   mongodb-exporter:
     # Phase 4: pinned by digest (see gateway note).
+    # P1.3: NO container healthcheck by design — no shell/prober in this image;
+    # health signal is `up{job="mongodb"} == 0` via the DBUnavailable alert.
     image: percona/mongodb_exporter:0.40.0@sha256:d66daa6aff0513860d1577cee3b55ab82fde43394f8319d7b4674411b9153cce
     restart: unless-stopped
     networks:
@@ -300,6 +335,8 @@ services:
     # Dual-net like `api`: it must reach gateway:80 (gateway is intentionally
     # public-only, so a private-only exporter cannot resolve it) while being
     # scraped by Prometheus on `private`. No published ports.
+    # P1.3: NO container healthcheck by design — scratch image, no prober;
+    # health signal is `up{job="nginx"} == 0` via the ExporterDown alert.
     image: nginx/nginx-prometheus-exporter:1.4.2@sha256:6edfb73afd11f2d83ea4e8007f5068c3ffaa38078a6b0ad1339e5bd2f637aacd
     command:
       - -nginx.scrape-uri=http://gateway:80/nginx_status

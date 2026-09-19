@@ -93,3 +93,17 @@ groups:
           summary: "Over 20% of EHR calls non-OK for 2m"
           description: "External dependency degraded: jobs land in processed_ehr_degraded; retries/timeouts climb."
           runbook: "1) Grafana EHR-outcome-mix panel: which result (5xx/401/503/timeout)? 2) Check ehr-mock mode/health (EHR_MODE env). 3) 401 = credential/config issue (non-retryable) — fix first. 4) Full lifecycle: docs/INCIDENTS.md INC-02."
+
+      # P1.3: the 3 scratch-based exporters (redis/nginx/mongodb — no shell, so no
+      # container healthcheck is honest) are watched here instead: if Prometheus
+      # cannot scrape one, its `up` goes 0 and this fires. (mongodb is additionally
+      # covered by DBUnavailable; this rule covers redis + nginx exporters.)
+      - alert: ExporterDown
+        expr: up{job=~"redis|nginx"} == 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Metrics exporter down (job {{ $labels.job }})"
+          description: "Prometheus cannot scrape the {{ $labels.job }} exporter. App traffic is unaffected; observability for that component is blind until it recovers."
+          runbook: "1) docker compose ps <job>-exporter + logs. 2) up -d to recreate (restart: unless-stopped revives crashes). 3) Check the Grafana dashboard panel for that component — it will show gaps."

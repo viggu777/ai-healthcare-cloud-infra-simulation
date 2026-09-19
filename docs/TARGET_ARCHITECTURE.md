@@ -67,7 +67,7 @@ flowchart TB
         end
 
         subgraph OBS["Observability (private, admin-only exposure)"]
-            PROM["Prometheus<br/>+ 9 alert rules"]
+            PROM["Prometheus<br/>+ 10 alert rules"]
             GRAF["Grafana :3000/:3001<br/>127.0.0.1 admin-only"]
             AM["Alertmanager"]
             PG["Pushgateway<br/>(pipeline status)"]
@@ -182,7 +182,7 @@ flowchart TB
 - **Technology:** Prometheus + Grafana (official images), exporters for Mongo/Redis.
 - **Network visibility:** Internal network; Grafana UI reachable only via an admin-only path (not the public gateway route used by patients/clients), or via a separate local-only port bound to `127.0.0.1` — never generally public.
 - **Dependencies:** Scrapes API, worker, Nginx, Redis-exporter, Mongo-exporter.
-- **Health checks:** Own container healthchecks; Prometheus `up{}` metric is itself the health signal for every scraped target.
+- **Health checks:** Real container healthchecks on Prometheus, Alertmanager, Pushgateway, and Grafana (P1.3 — `/-/healthy` / `/api/health` via wget); the 3 scratch-based exporters (redis/mongo/nginx) carry no container healthcheck by design (no shell or prober binary inside — a CMD probe would always lie) and are watched via Prometheus `up{job=…} == 0` plus the `ExporterDown` alert instead.
 - **Failure behavior:** Observability outage must not affect the application data plane; alerting on Prometheus/Grafana's own availability is a P2, not blocking.
 
 ### CI/CD Pipeline (GitHub Actions)
@@ -388,7 +388,7 @@ This deviation is treated as a documented, reasoned engineering trade-off — no
 | **Phase 1 — Foundation simulation** | Services + gateway + MongoDB + Redis + public/private networks + dev/prod-like envs + health/metrics endpoints + smoke & workload tests + base architecture docs | **Done** (re-validated after the Node.js 22 + Express migration — see §18, `docs/MERN-MIGRATION.md`) |
 | **Phase 2 — Hardening + security validation** | Non-root audit, minimal images, `.dockerignore`, Trivy image scan, Gitleaks secret scan, Compose lint (no public DB/queue, `internal: true` verified), findings documented in `docs/SECURITY.md` | **Done** — `security-scan.sh` PASS 26/0 on the Node stack |
 | **Phase 3 — DevSecOps pipeline + safe releases** | `pipeline.sh` + GitHub Actions: lint → unit → secret scan → build → Trivy gate → deploy dev → health gate → promote prod-like → rollback; SHA + semver tags; digest-pinned bases; demo of healthy rollout, security-blocked release, and rolled-back broken version | **Done** — evidence in `docs/CICD.md` + `docs/pipeline-evidence/` |
-| **Phase 4 — Observability, scaling, resilience, ops** | Prometheus + Grafana + Alertmanager + Pushgateway + 3 exporters, 9 alert rules, EHR-outcome telemetry, k6 normal/increased load with measured drain/scaling, two incident lifecycles (both documented), Mongo backup/restore drilled, SPOF/cost/audit docs, demo script | **Done** — `docs/INCIDENTS.md`, `docs/RESILIENCE.md`, `docs/SPOF.md`, `docs/DEMO.md`, `monitoring/`, `k6/` |
+| **Phase 4 — Observability, scaling, resilience, ops** | Prometheus + Grafana + Alertmanager + Pushgateway + 3 exporters, 10 alert rules, EHR-outcome telemetry, k6 normal/increased load with measured drain/scaling, two incident lifecycles (both documented), Mongo backup/restore drilled, SPOF/cost/audit docs, demo script | **Done** — `docs/INCIDENTS.md`, `docs/RESILIENCE.md`, `docs/SPOF.md`, `docs/DEMO.md`, `monitoring/`, `k6/` |
 
 **Explicitly out of scope in every phase** (per §15 below and PDF §26): frontend/UI of any kind, a real AI agent, telephony, real EHR integration, real patient data, real cloud deployment.
 
@@ -505,7 +505,7 @@ the IaC-recreation requirement is met by versioned Compose (down/up proven).
 | Failure tolerance: API/worker/EHR/queue/DB/deploy/config (§14) | Restart policies, retries, circuit breaker, health gates | Documented per-component in §9 | 1 (worker/queue proven) / 3 (deploy proven: rollback demo) / 4 (incident lifecycles) | Worker-failure + queue-drain proven in Phase 1; unhealthy-deploy rollback proven in Phase 3; INC-01/INC-02 lifecycles with telemetry in Phase 4 |
 | Independent API/worker scaling, measured performance (§15) | `--scale`, k6 | Compose scale flags; k6 scripts | 1 (scale proven) / 4 (formal load tests) | Nginx static-upstream limitation noted |
 | Logging, metrics, health checks, dashboard (§16) | `/health`,`/ready`,`/metrics` + `/metrics/prom`, Prometheus, Grafana | Text exposition endpoints + 3 exporters + provisioned 17-panel dashboard | 1 (endpoints) / 4 (done: scraped, visualized) | Dashboard live on 127.0.0.1:3000/3001 |
-| Actionable alerts (§17) | Prometheus Alertmanager rules | 9 rules (API/worker/queue/DB/deploy/security/EHR) with runbook annotations | 4 (done: firing proven — QueueBacklog, WorkerDown, EHROutage) | Receiver is a discard webhook (paging = future) |
+| Actionable alerts (§17) | Prometheus Alertmanager rules | 10 rules (API/worker/queue/DB/deploy/security/EHR/exporter) with runbook annotations | 4 (done: firing proven — QueueBacklog, WorkerDown, EHROutage) | Receiver is a discard webhook (paging = future) |
 | Incident simulation w/ full lifecycle report (§18) | Fault injection (stop worker, break EHR) + telemetry | Two incidents, both documented (INC-01 full) | 4 (done) | `docs/INCIDENTS.md` |
 | Backup/recovery of persistent state (§19) | `mongodump`/`mongorestore`, named volume | Scripted 1519→1419→1519 drill | 4 (done) | `docs/RESILIENCE.md` §6 |
 | SPOF analysis (§20) | `docs/SPOF.md` (reuses R1–R7 framing) | Covers API/worker/queue/DB/EHR/deployment/monitoring + cost + auditability | 4 (done) | |
