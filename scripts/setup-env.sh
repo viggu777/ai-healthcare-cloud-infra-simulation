@@ -15,6 +15,7 @@ LOCAL_AI_KEY="kmvk777"
 
 gen() { # $1=out $2=project $3=appver $4=gw $5=gwtls $6=log $7=concurrency $8=grafport
   local out="$1"
+  mkdir -p "$(dirname "$out")"
   cp .env.example "$out"
   set_k() { sed -i "s|^$1=.*|$1=$2|" "$out"; }
   set_k COMPOSE_PROJECT_NAME "$2"
