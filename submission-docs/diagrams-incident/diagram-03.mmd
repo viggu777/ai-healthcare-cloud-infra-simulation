@@ -1,0 +1,8 @@
+flowchart TB
+    R1["Recreate worker drains 30 to 0 in 22s"]
+    R2["Recreate EHR in ok mode fresh jobs 100 pct ok"]
+    R3["Recreate DB readiness true plus fresh 200"]
+    V["All alerts 0 active plus SMOKE OK"]
+    R1 --> V
+    R2 --> V
+    R3 --> V

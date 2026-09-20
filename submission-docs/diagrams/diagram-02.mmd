@@ -1,0 +1,37 @@
+flowchart TB
+    subgraph Public["Public network"]
+        GW["Nginx gateway port 80 and 443"]
+        API["API service port 8000"]
+        Graf["Grafana localhost admin port"]
+        NginxExp["Nginx exporter"]
+    end
+    subgraph Private["Private internal network"]
+        AIS["AI service port 8001"]
+        Wrk["Worker port 8003"]
+        EHRm["EHR mock port 8002"]
+        Q["Redis queue port 6379"]
+        DB["MongoDB port 27017"]
+        Prom["Prometheus"]
+        AM["Alertmanager"]
+        AL["Alert logger port 9089"]
+        PG["Pushgateway port 9091"]
+        RExp["Redis exporter"]
+        MExp["MongoDB exporter"]
+    end
+    GW --> API
+    API --> AIS
+    API --> Q
+    API --> DB
+    Wrk --> Q
+    Wrk --> DB
+    Wrk --> EHRm
+    Prom --> API
+    Prom --> Wrk
+    Prom --> AIS
+    Prom --> EHRm
+    Prom --> NginxExp
+    Prom --> RExp
+    Prom --> MExp
+    Prom --> PG
+    AM --> AL
+    Prom --> AM

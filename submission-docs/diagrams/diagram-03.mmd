@@ -1,0 +1,27 @@
+flowchart TB
+    Post["POST appointments via gateway"]
+    Val["Validate patient and doctor strings"]
+    InsA["Insert appointment queued"]
+    InsJ["Insert job queued attempts zero"]
+    Push["RPUSH jobs payload"]
+    Resp["Return job id plus appointment id"]
+    BLPOP["Worker BLPOP jobs with 5s timeout"]
+    Proc["Mark processing attempts plus 1"]
+    EHRc["Call EHR with retries and breaker"]
+    Done["Mark done plus appointment processed"]
+    Degr["Mark done plus appointment degraded"]
+    Retry["Backoff requeue when attempts below 3"]
+    Dead["RPUSH dead letter when exhausted"]
+    Post --> Val
+    Val --> InsA
+    InsA --> InsJ
+    InsJ --> Push
+    Push --> Resp
+    Push --> BLPOP
+    BLPOP --> Proc
+    Proc --> EHRc
+    EHRc --> Done
+    EHRc --> Degr
+    EHRc --> Retry
+    Retry --> BLPOP
+    EHRc --> Dead

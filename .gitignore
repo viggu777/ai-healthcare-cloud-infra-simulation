@@ -1,7 +1,8 @@
 # Local simulation secrets (real values, never commit).
-# NOTE: environments/dev.env + prod.env ARE committed intentionally with
-# placeholder-only values (accepted risk R4, Gitleaks-clean). This rule covers
-# root .env files and any *.local overrides, not those placeholders.
+# environments/dev.env + prod.env hold the LIVE local-simulation secrets and are
+# NOT tracked (generate with scripts/setup-env.sh). Only .env.example (placeholders) is committed.
+environments/dev.env
+environments/prod.env
 .env
 *.local
 

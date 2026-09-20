@@ -1,0 +1,14 @@
+flowchart TB
+    Cq["POST ai query via gateway"]
+    Fwd["API forwards with X-API-Key 5s timeout"]
+    Auth["AI service checks API key"]
+    Deny["401 invalid AI API key"]
+    Sleep["Sleep 200ms mock inference"]
+    Triage["Return mock triage plus model tag"]
+    Back["API returns ai_status plus ai_response"]
+    Cq --> Fwd
+    Fwd --> Auth
+    Auth --> Deny
+    Auth --> Sleep
+    Sleep --> Triage
+    Triage --> Back

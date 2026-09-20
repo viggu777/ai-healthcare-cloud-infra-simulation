@@ -1,0 +1,14 @@
+flowchart TB
+    Edge["Gateway sole ingress with rate limit"]
+    Net["Public and private network split"]
+    Ident["Per-service DB users plus AI secret"]
+    Secrets["Env-file secrets never in git"]
+    Runtime["Non-root read-only no-new-privileges"]
+    Scan["Six scan gates 32 of 0"]
+    Gate["Pipeline blocks unsafe release"]
+    Edge --> Net
+    Net --> Ident
+    Ident --> Secrets
+    Secrets --> Runtime
+    Runtime --> Scan
+    Scan --> Gate

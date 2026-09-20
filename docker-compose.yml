@@ -1,7 +1,10 @@
 # Phase 1 base + Phase 2 hardening (cap_drop + no-new-privileges on custom services).
-# P0.2: every service carries `restart: unless-stopped` — an unexpected process
-# death (crash/OOM) is revived automatically; an explicit `docker stop/kill`
-# stays stopped by design (management hold-down, used for the INC-01 window).
+# P0.2: every service carries `restart: unless-stopped` — the DEMONSTRATED recovery
+# path is operator-driven (WorkerDown alert fires → `up -d <svc>` → queue drains;
+# see docs/INCIDENTS.md INC-01). A daemon-level kill during audit stayed `exited`
+# until manual `up -d`, so no "automatic revival" is claimed: `docker stop` stays
+# stopped by design, and any crash revival beyond that is unverified in this
+# environment — treat worker/api-down alerts as requiring operator action.
 # Runtime stack: Node.js 22 + Express (MERN backend; no frontend per spec §26).
 # Usage:
 #   docker compose --env-file environments/dev.env up --build

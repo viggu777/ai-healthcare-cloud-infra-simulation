@@ -1,0 +1,10 @@
+flowchart TB
+    Store["Secrets live in git-ignored env files"]
+    Example["Env example ships placeholders only"]
+    Inject["Compose injects at deploy time"]
+    Rotate["Rotation script rolls live creds"]
+    ScanS["Gitleaks git-mode scan gates release"]
+    Store --> Example
+    Store --> Inject
+    Inject --> Rotate
+    Rotate --> ScanS

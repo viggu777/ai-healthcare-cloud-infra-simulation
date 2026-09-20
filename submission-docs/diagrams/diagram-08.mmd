@@ -1,0 +1,19 @@
+flowchart TB
+    Lint["Lint plus unit plus audit"]
+    Sec["Security scan plus Trivy gate"]
+    Build["Build SHA-tagged images"]
+    DevUp["Deploy dev plus DB users"]
+    DevGate["Ready plus smoke plus workload gates"]
+    ProdUp["Promote prod-like"]
+    ProdGate["Post-promote check"]
+    RollB["Rollback to previous tag"]
+    PushP["Push status to Pushgateway"]
+    Lint --> Sec
+    Sec --> Build
+    Build --> DevUp
+    DevUp --> DevGate
+    DevGate --> ProdUp
+    ProdUp --> ProdGate
+    ProdGate --> RollB
+    DevGate --> RollB
+    ProdUp --> PushP

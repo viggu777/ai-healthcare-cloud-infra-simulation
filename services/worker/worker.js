@@ -71,9 +71,64 @@ async function queueDepth() {
   }
 }
 
+// Dependency-aware readiness (H5 fix): ping MongoDB + Redis live, like api
+// /ready. Returns {db, queue} so /health can report degraded/503 instead of
+// a hardcoded ok. Null-safe: missing clients report fail, never throw.
+// Bounded: each check races a 3s timeout so a hung dependency fails fast
+// (ioredis queues commands while disconnected; without the race /health
+// would hang instead of reporting degraded). Fits the 5s container
+// healthcheck timeout.
+const withTimeout = (ms, what) =>
+  new Promise((_, rej) => setTimeout(() => rej(new Error(`${what} timeout`)), ms));
+
+async function depChecks() {
+  const checks = {};
+  try {
+    if (!mongo) throw new Error('MONGODB_URI not set');
+    try {
+      await Promise.race([mongo.db('admin').command({ ping: 1 }), withTimeout(3000, 'mongo')]);
+    } catch {
+      await mongo.connect(); // self-heal closed topology (same boot-race as api /ready)
+      await Promise.race([mongo.db('admin').command({ ping: 1 }), withTimeout(3000, 'mongo')]);
+    }
+    checks.db = 'ok';
+  } catch (e) {
+    checks.db = `fail: ${e.message}`;
+  }
+  try {
+    await Promise.race([redis.ping(), withTimeout(3000, 'redis')]);
+    checks.queue = 'ok';
+  } catch (e) {
+    checks.queue = `fail: ${e.message}`;
+  }
+  return checks;
+}
+
 // Health endpoint (bare http — no web framework needed in the worker).
+// /health is dependency-aware (200 ready / 503 degraded); /metrics keeps the
+// legacy always-200 JSON shape (scrapers use /metrics/prom for Prometheus text).
 const server = http.createServer(async (req, res) => {
-  if (req.method === 'GET' && (req.url === '/health' || req.url === '/metrics')) {
+  if (req.method === 'GET' && req.url === '/health') {
+    const checks = await depChecks();
+    const ready = Object.values(checks).every((v) => v === 'ok');
+    const qd = await queueDepth();
+    const body = JSON.stringify({
+      status: ready ? 'ok' : 'degraded',
+      service: 'worker',
+      ready,
+      checks,
+      queue_depth: qd,
+      processed_total: processedTotal,
+      failed_total: failedTotal,
+      avg_latency_ms: processedTotal ? Math.round((latencyMsTotal / processedTotal) * 100) / 100 : 0,
+      uptime_s: Math.round((Date.now() - startedAt) / 100) / 10,
+      fail_mode: FAIL_MODE,
+      breaker_state: breakerState,
+      consecutive_ehr_failures: consecutiveFailures,
+    });
+    res.writeHead(ready ? 200 : 503, { 'Content-Type': 'application/json' });
+    res.end(body);
+  } else if (req.method === 'GET' && req.url === '/metrics') {
     const qd = await queueDepth();
     const body = JSON.stringify({
       status: 'ok',

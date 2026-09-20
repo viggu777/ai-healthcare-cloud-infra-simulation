@@ -1,0 +1,12 @@
+flowchart TB
+    FtIn["Feature request hits gateway"]
+    FtVal["API validates or proxies"]
+    FtSync["Sync read returns EHR or AI payload"]
+    FtAsync["Async write enqueues job"]
+    FtPoll["Client polls list or queue depth"]
+    FtDone["Worker completes and metrics update"]
+    FtIn --> FtVal
+    FtVal --> FtSync
+    FtVal --> FtAsync
+    FtAsync --> FtPoll
+    FtPoll --> FtDone

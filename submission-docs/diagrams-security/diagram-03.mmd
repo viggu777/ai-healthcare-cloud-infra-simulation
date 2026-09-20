@@ -1,0 +1,14 @@
+flowchart TB
+    S1["Gate 1 non-root audit 5 services"]
+    S2["Gate 2 minimal image plus no curl"]
+    S3["Gate 3 dockerignore present"]
+    S4["Gate 4 Trivy image scan per service"]
+    S5["Gate 5 Gitleaks secret scan"]
+    S6["Gate 6 compose lint 81 checks"]
+    Verdict["Verdict 32 passed 0 failed"]
+    S1 --> S2
+    S2 --> S3
+    S3 --> S4
+    S4 --> S5
+    S5 --> S6
+    S6 --> Verdict

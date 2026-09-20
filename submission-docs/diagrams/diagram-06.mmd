@@ -1,0 +1,24 @@
+flowchart TB
+    Loop["BLPOP jobs blocks up to 5s"]
+    Take["Pop one payload"]
+    Attempt["Attempts plus 1 mark processing"]
+    FailMode["Check fail mode off slow error crash"]
+    SlowP["Sleep 4s injected slowness"]
+    ErrP["Inject terminal error"]
+    CrashP["Crash process for supervisor revival"]
+    EHRw["EHR call with backoff and breaker"]
+    OkP["Done path"]
+    ReQ["Requeue when attempts below 3"]
+    DeadP["Dead letter when exhausted"]
+    Loop --> Take
+    Take --> Attempt
+    Attempt --> FailMode
+    FailMode --> SlowP
+    FailMode --> ErrP
+    FailMode --> CrashP
+    FailMode --> EHRw
+    SlowP --> EHRw
+    EHRw --> OkP
+    EHRw --> ReQ
+    ReQ --> Loop
+    EHRw --> DeadP

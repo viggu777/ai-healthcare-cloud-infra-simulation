@@ -1,0 +1,12 @@
+flowchart TB
+    Seed["Seed fake key in scripts dir"]
+    LintO["Lint OK and unit 6 of 6 OK"]
+    SecF["Security gate 25 passed 1 failed"]
+    Block["Pipeline BLOCKED pre-deploy exit 1"]
+    Untouched["Dev still serves healthy tag"]
+    Clean["Remove seed plus redact log repass 32 of 0"]
+    Seed --> LintO
+    LintO --> SecF
+    SecF --> Block
+    Block --> Untouched
+    Untouched --> Clean

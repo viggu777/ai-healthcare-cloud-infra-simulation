@@ -16,6 +16,7 @@ Foundation simulation environment:
 ```bash
 git clone https://github.com/viggu777/ai-healthcare-cloud-infra-simulation.git
 cd ai-healthcare-cloud-infra-simulation
+bash scripts/setup-env.sh   # generates git-ignored environments/dev.env + prod.env (local-only secrets)
 bash scripts/gen-gateway-cert.sh   # gateway/tls/ is git-ignored by design; required before first up
 docker compose --env-file environments/dev.env up --build -d
 bash scripts/create-db-users.sh --env-file environments/dev.env   # fresh volumes only: syncs least-privilege DB users to env passwords (idempotent)
@@ -52,8 +53,9 @@ docker compose --env-file environments/dev.env up --build -d
 DB persists via `mongodb_data` volume unless `docker volume rm` is used.
 
 ## Secrets
-Never hardcoded. Provided via env files; `.env.example` documents keys with placeholders.
-Change `MONGO_PASSWORD` and `AI_API_KEY` before any shared use.
+Never committed. `environments/dev.env` + `prod.env` are git-ignored and generated
+locally by `bash scripts/setup-env.sh`; only `.env.example` (placeholders) is tracked.
+Live passwords are local-simulation-only. Rotate with `scripts/rotate-secrets.sh`.
 
 ## Phases
 - Phase 1 (done): foundation above (re-validated after MERN port — see `docs/PHASE1-RESULTS.md`)

@@ -26,10 +26,23 @@ if ! curl -fsS -m 5 "$GW/ready" | python3 -c "import json,sys; sys.exit(0 if jso
   APP_VERSION="$STABLE" docker compose --env-file "$ENV_FILE" up -d --scale api=1 2>&1 | tail -1
   exit 1
 fi
+# Baseline error counter before probes (delta aborts promotion below).
+ERR_BEFORE="$(curl -fsS -m 5 "$GW/metrics" | python3 -c "import json,sys; m=json.load(sys.stdin); print(m.get('errors_total',0))")"
 python3 scripts/workload.py "$GW" "$PROBES" 2>&1 | tail -3
-ERR="$(curl -fsS "$GW/metrics" | python3 -c "import json,sys; m=json.load(sys.stdin); print(m.get('errors_total',0))")"
-echo "errors_total=$ERR"
-if [ "$ERR" -gt 0 ] && [ "$PROBES" -gt 0 ]; then :; fi
+WORKLOAD_RC=${PIPESTATUS[0]:-0}
+ERR_AFTER="$(curl -fsS -m 5 "$GW/metrics" | python3 -c "import json,sys; m=json.load(sys.stdin); print(m.get('errors_total',0))")"
+NEW_ERR=$((ERR_AFTER - ERR_BEFORE))
+echo "errors_total before=$ERR_BEFORE after=$ERR_AFTER new=$NEW_ERR (workload rc=$WORKLOAD_RC)"
+if [ "$WORKLOAD_RC" -ne 0 ]; then
+  echo "CANARY ABORT: probe workload failed (rc=$WORKLOAD_RC) — rolling back to $STABLE"
+  APP_VERSION="$STABLE" docker compose --env-file "$ENV_FILE" up -d --scale api=1 2>&1 | tail -1
+  exit 1
+fi
+if [ "$NEW_ERR" -gt 0 ]; then
+  echo "CANARY ABORT: $NEW_ERR new api error(s) during probes — rolling back to $STABLE"
+  APP_VERSION="$STABLE" docker compose --env-file "$ENV_FILE" up -d --scale api=1 2>&1 | tail -1
+  exit 1
+fi
 echo "CANARY PROMOTE: $TAG healthy — pinning all api replicas to $TAG"
 APP_VERSION="$TAG" docker compose --env-file "$ENV_FILE" up -d --scale api=1 2>&1 | tail -1
 echo "CANARY OK ($TAG now stable; previous $STABLE retained as image tag for rollback)"

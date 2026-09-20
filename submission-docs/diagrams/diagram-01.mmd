@@ -1,0 +1,19 @@
+flowchart TB
+    Client["Client on host network"]
+    Gateway["Nginx gateway on port 80 and 443"]
+    API["API service validates and enqueues"]
+    Queue["Redis queue list named jobs"]
+    Worker["Worker consumes and processes"]
+    EHR["EHR mock external dependency"]
+    Mongo["MongoDB appointments and jobs"]
+    Observe["Prometheus plus Grafana plus alerts"]
+    Client --> Gateway
+    Gateway --> API
+    API --> Queue
+    API --> Mongo
+    Queue --> Worker
+    Worker --> EHR
+    Worker --> Mongo
+    API --> Observe
+    Worker --> Observe
+    EHR --> Observe

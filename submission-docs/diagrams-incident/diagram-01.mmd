@@ -1,0 +1,14 @@
+flowchart TB
+    Fail["Failure inject on live dev stack"]
+    Detect["Detection via alerts plus queue depth"]
+    Invest["Investigation via logs plus panels plus probes"]
+    Root["Root cause isolated to one layer"]
+    Recover["Recovery via recreate or restart"]
+    Verify["Verification alerts clear plus smoke"]
+    Prevent["Prevention alert plus hardening plus docs"]
+    Fail --> Detect
+    Detect --> Invest
+    Invest --> Root
+    Root --> Recover
+    Recover --> Verify
+    Verify --> Prevent

@@ -1,0 +1,10 @@
+flowchart TB
+    S1["Worker stop freezes queue at 30"]
+    A1["WorkerDown 1.5 min plus Backlog 2.5 min"]
+    S2["EHR unavailable degrades 171 jobs"]
+    A2["EHROutage 2 min on non-ok ratio"]
+    S3["DB kill flips ready false plus 503s"]
+    A3["DBUnavailable 1 min plus ConfigFailure 2 min"]
+    S1 --> A1
+    S2 --> A2
+    S3 --> A3

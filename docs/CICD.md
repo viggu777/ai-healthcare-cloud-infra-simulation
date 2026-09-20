@@ -157,6 +157,7 @@ changing any endpoint behavior.
 - CI workflow **executed on GitHub (P1.7, green run linked in §1)** — including two real twin-only findings fixed along the way (trivy-gate `--tag` space-form parsing; per-job fresh runners needing per-job TLS cert generation).
 - `prod-like` is a second Compose project on the same host, not a separate host —
   promotion mechanics are real, blast radius is simulated (consistent with §14).
+- Rollout ordering is deploy-then-verify: Compose recreates the container before the health gate runs, so traffic reaches the new version before verification completes; safety comes from the fast previous-tag rollback (Demo 3), not verify-before-shift. `scripts/canary.sh` is the opt-in verify-before-full-promotion path (sampled probes against a side-by-side replica, abort + rollback to stable on probe failure or new errors).
 - No autoscaler; load characterization (k6) and the remaining PDF rows move to Phase 4.
 
 ## 11. Phase 4 addendum (2026-09-19)

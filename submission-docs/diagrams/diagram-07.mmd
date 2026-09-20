@@ -1,0 +1,12 @@
+flowchart TB
+    Scrape["Prometheus scrapes 8 targets every 15s"]
+    Rules["Evaluate 14 alert rules every 15s"]
+    Fire["Fire to Alertmanager"]
+    Sink["Alert logger appends JSON line"]
+    Dash["Grafana renders 19 panels"]
+    Pipe["Pipeline pushes status via Pushgateway"]
+    Scrape --> Rules
+    Rules --> Fire
+    Fire --> Sink
+    Scrape --> Dash
+    Pipe --> Scrape

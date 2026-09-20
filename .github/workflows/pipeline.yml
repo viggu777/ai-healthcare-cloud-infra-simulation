@@ -31,6 +31,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: generate local env files (git-ignored, setup-env.sh)
+        run: bash scripts/setup-env.sh
       - name: lint (syntax gate, all services)
         run: |
           for f in services/api/server.js services/api/validate.js services/api/validate.test.js \
@@ -61,6 +63,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: generate local env files (git-ignored, setup-env.sh)
+        run: bash scripts/setup-env.sh
       - name: build current images (scan target)
         run: docker compose --env-file environments/dev.env build api ai-service worker ehr-mock alert-logger
       - name: security gate as-is (gitleaks + trivy report + compose lint)
@@ -77,8 +81,10 @@ jobs:
         with:
           node-version: "22"
       # NOTE: every job runs on a FRESH runner — artifacts from lint-and-unit
-      # (notably gateway/tls/, git-ignored by design) do not carry over.
-      # The gateway TLS mount must exist before compose touches it.
+      # (notably gateway/tls/ and environments/*.env, git-ignored by design) do not carry over.
+      # Both must exist before compose touches them.
+      - name: generate local env files (git-ignored, per-runner)
+        run: bash scripts/setup-env.sh
       - name: ensure gateway TLS cert (git-ignored, per-runner)
         run: bash scripts/gen-gateway-cert.sh
       - name: build + SHA-tag images
